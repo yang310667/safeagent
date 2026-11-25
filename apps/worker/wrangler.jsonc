@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "safeagent-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-02-04",
+  "vars": {
+    "APP_VERSION": "0.1.0",
+    "AGENT_ENABLED": "false",
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://yang310667.github.io"
+  }
+}
