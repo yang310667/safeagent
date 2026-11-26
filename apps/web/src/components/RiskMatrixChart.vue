@@ -3,9 +3,15 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import * as echarts from 'echarts';
 import type { RiskAssessmentRecord } from '@safeagent/shared';
 
-const props = defineProps<{
-  records: RiskAssessmentRecord[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    records: RiskAssessmentRecord[];
+    showBarChart?: boolean;
+  }>(),
+  {
+    showBarChart: true,
+  },
+);
 
 const matrixChartRef = ref<HTMLDivElement | null>(null);
 const barChartRef = ref<HTMLDivElement | null>(null);
@@ -194,7 +200,7 @@ function initCharts(): void {
       matrixChart = echarts.init(matrixChartRef.value);
       renderMatrixChart();
     }
-    if (barChartRef.value) {
+    if (props.showBarChart && barChartRef.value) {
       barChart = echarts.init(barChartRef.value);
       renderBarChart();
     }
@@ -254,7 +260,11 @@ onBeforeUnmount(() => {
       <div ref="matrixChartRef" class="w-full h-[290px]" data-testid="echarts-matrix-container" />
     </div>
 
-    <div v-show="records.length > 0" class="border border-[#E2E8F0] rounded-md bg-white p-3">
+    <div
+      v-if="showBarChart"
+      v-show="records.length > 0"
+      class="border border-[#E2E8F0] rounded-md bg-white p-3"
+    >
       <div class="text-xs font-semibold text-[#1E293B] mb-2">
         改善前 vs 剩餘風險分數對照（ECharts）
       </div>

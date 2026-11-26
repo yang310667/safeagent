@@ -124,7 +124,17 @@ describe('Day 4 5x5 Risk Matrix Rules & View', () => {
     expect(wrapper.get('[data-testid="saved-record-title"]').text()).toBe('B棟廠房複評版本');
     expect(reloadedStore.records[0]?.recordName).toBe('B棟廠房複評版本');
 
-    // Delete record
+    // Click topic card to view detail with 5x5 matrix chart and NO bar chart
+    await wrapper.get('[data-testid="saved-record-item"]').trigger('click');
+    expect(wrapper.find('[data-testid="record-detail-view"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="detail-record-title"]').text()).toBe('B棟廠房複評版本');
+    expect(wrapper.find('[data-testid="echarts-matrix-container"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="echarts-bar-container"]').exists()).toBe(false);
+
+    // Return to topic list and delete record
+    await wrapper.get('[data-testid="back-to-records-list-btn"]').trigger('click');
+    expect(wrapper.find('[data-testid="record-detail-view"]').exists()).toBe(false);
+
     await wrapper.get('[data-testid="delete-record-btn"]').trigger('click');
     expect(reloadedStore.records).toHaveLength(0);
     expect(wrapper.find('[data-testid="risk-records-page-empty"]').exists()).toBe(true);
