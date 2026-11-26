@@ -2,10 +2,15 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildRiskAssessmentRecord, calculateRiskGrade } from '@safeagent/shared';
+import { useRiskStore } from '@/stores/risk';
 import RiskMatrixView from '@/views/RiskMatrixView.vue';
+import RiskRecordsView from '@/views/RiskRecordsView.vue';
 
 describe('Day 4 5x5 Risk Matrix Rules & View', () => {
   beforeEach(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
     setActivePinia(createPinia());
   });
 
@@ -81,5 +86,47 @@ describe('Day 4 5x5 Risk Matrix Rules & View', () => {
     expect(wrapper.get('[data-testid="risk-report-preview"]').text()).toContain(
       'SafeAgent 初步危害辨識與風險評估報告',
     );
+  });
+
+  it('persists records with custom names and allows renaming and deleting in RiskRecordsView', async () => {
+    const store = useRiskStore();
+    store.addRecord(
+      buildRiskAssessmentRecord(
+        {
+          recordName: 'A棟頂樓初評',
+          hazardName: '屋頂高處墜落',
+          scenarioTitle: '廠區頂樓排氣風車維修',
+          initialProbability: 4,
+          initialSeverity: 5,
+          controlsApplied: ['安全母索', '安全帶'],
+          residualProbability: 2,
+          residualSeverity: 3,
+          userConfirmed: true,
+        },
+        'risk-rec-1',
+      ),
+    );
+
+    // Verify localStorage persistence across fresh Pinia instance
+    setActivePinia(createPinia());
+    const reloadedStore = useRiskStore();
+    expect(reloadedStore.records).toHaveLength(1);
+    expect(reloadedStore.records[0]?.recordName).toBe('A棟頂樓初評');
+
+    const wrapper = mount(RiskRecordsView);
+    expect(wrapper.get('[data-testid="saved-record-title"]').text()).toBe('A棟頂樓初評');
+
+    // Rename record inline
+    await wrapper.get('[data-testid="rename-record-btn"]').trigger('click');
+    await wrapper.get('[data-testid="rename-record-input"]').setValue('B棟廠房複評版本');
+    await wrapper.get('[data-testid="save-record-name-btn"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="saved-record-title"]').text()).toBe('B棟廠房複評版本');
+    expect(reloadedStore.records[0]?.recordName).toBe('B棟廠房複評版本');
+
+    // Delete record
+    await wrapper.get('[data-testid="delete-record-btn"]').trigger('click');
+    expect(reloadedStore.records).toHaveLength(0);
+    expect(wrapper.find('[data-testid="risk-records-page-empty"]').exists()).toBe(true);
   });
 });

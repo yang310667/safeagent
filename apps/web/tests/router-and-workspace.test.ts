@@ -22,6 +22,7 @@ describe('Router Navigation & Workspace Interaction', () => {
       '/guide',
       '/workspace',
       '/risk-matrix',
+      '/risk-records',
       '/knowledge',
       '/accident-cases',
       '/learning-log',

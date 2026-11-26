@@ -83,6 +83,9 @@ riskRoutes.post('/risk/calculate', async (c) => {
   }
 
   const record = buildRiskAssessmentRecord({
+    ...(typeof body.recordName === 'string' && body.recordName.trim()
+      ? { recordName: body.recordName.trim() }
+      : {}),
     hazardName: body.hazardName,
     scenarioTitle: body.scenarioTitle,
     initialProbability: body.initialProbability,

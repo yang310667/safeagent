@@ -7,6 +7,7 @@ import {
   BookOpen,
   Bot,
   ChevronRight,
+  ClipboardList,
   Compass,
   ExternalLink,
   FlaskConical,
@@ -55,6 +56,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: 'AI 風險評估', to: '/workspace', icon: Bot },
       { label: '風險矩陣', to: '/risk-matrix', icon: Grid2x2 },
+      { label: '風險評估紀錄', to: '/risk-records', icon: ClipboardList },
     ],
   },
   {

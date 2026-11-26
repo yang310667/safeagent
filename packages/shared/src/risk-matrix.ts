@@ -19,6 +19,7 @@ export interface RiskGradeResult {
 }
 
 export interface RiskAssessmentInput {
+  recordName?: string;
   hazardName: string;
   scenarioTitle: string;
   initialProbability: RiskScaleValue;
@@ -31,6 +32,7 @@ export interface RiskAssessmentInput {
 
 export interface RiskAssessmentRecord {
   id: string;
+  recordName?: string;
   hazardName: string;
   scenarioTitle: string;
   initialRisk: RiskGradeResult;
@@ -129,8 +131,11 @@ export function buildRiskAssessmentRecord(
     ? calculateRiskGrade(input.residualProbability!, input.residualSeverity!)
     : null;
 
+  const trimmedRecordName = input.recordName?.trim();
+
   return {
     id,
+    ...(trimmedRecordName ? { recordName: trimmedRecordName } : {}),
     hazardName: input.hazardName.trim(),
     scenarioTitle: input.scenarioTitle.trim(),
     initialRisk,

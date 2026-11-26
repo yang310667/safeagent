@@ -38,6 +38,15 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/risk-records',
+    name: 'risk-records',
+    component: () => import('@/views/RiskRecordsView.vue'),
+    meta: {
+      title: '風險評估紀錄',
+      group: 'Workspace',
+    },
+  },
+  {
     path: '/knowledge',
     name: 'knowledge',
     component: () => import('@/views/KnowledgeView.vue'),

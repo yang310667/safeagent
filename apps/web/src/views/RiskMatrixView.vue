@@ -70,6 +70,7 @@ const presetHazards = [
   },
 ];
 
+const recordName = ref('');
 const scenarioTitle = ref('廠區頂樓排氣風車維修');
 const hazardName = ref('');
 const initialProbability = ref<RiskScaleValue>(4);
@@ -167,7 +168,10 @@ async function handleAddAssessment(): Promise<void> {
     .map((item) => item.trim())
     .filter(Boolean);
 
+  const trimmedRecordName = recordName.value.trim();
+
   const payload = {
+    ...(trimmedRecordName ? { recordName: trimmedRecordName } : {}),
     hazardName: hazardName.value.trim(),
     scenarioTitle: scenarioTitle.value.trim(),
     initialProbability: initialProbability.value,
@@ -185,13 +189,17 @@ async function handleAddAssessment(): Promise<void> {
   isSubmitting.value = true;
   try {
     const record = await calculateRiskAssessment(payload);
-    riskStore.addRecord(record);
-    calculationModeLabel.value = '已透過後端確定性規則 API 計算並記錄';
+    riskStore.addRecord(
+      trimmedRecordName && !record.recordName ? { ...record, recordName: trimmedRecordName } : record,
+    );
+    recordName.value = '';
+    calculationModeLabel.value = '已透過後端確定性規則 API 計算並保存至評估紀錄';
   } catch (err) {
     if (err instanceof ApiClientError && (err.isNetworkError || err.isTimeout)) {
       const localRecord = buildRiskAssessmentRecord(payload);
       riskStore.addRecord(localRecord);
-      calculationModeLabel.value = '後端未連線，已使用共用確定性 5×5 規則本機計算';
+      recordName.value = '';
+      calculationModeLabel.value = '後端未連線，已使用共用確定性 5×5 規則本機計算並保存';
     } else {
       formError.value = err instanceof ApiClientError ? err.message : '計算風險評估失敗';
     }
@@ -393,6 +401,20 @@ onMounted(() => {
 
         <form class="space-y-3.5 text-xs" @submit.prevent="handleAddAssessment">
           <div>
+            <label class="block font-semibold text-[#475569] mb-1" for="risk-record-name">
+              紀錄名稱（選填）
+            </label>
+            <input
+              id="risk-record-name"
+              v-model="recordName"
+              data-testid="risk-record-name-input"
+              type="text"
+              placeholder="例如：11/26 A棟頂樓風車維修初評（未填將顯示情境與危害名稱）"
+              class="w-full rounded-md border border-[#CBD5E1] px-3 py-2 text-xs text-[#1E293B] focus:border-[#0F766E] focus:outline-none"
+            />
+          </div>
+
+          <div>
             <label class="block font-semibold text-[#475569] mb-1" for="risk-scenario-title">作業情境名稱</label>
             <input
               id="risk-scenario-title"
@@ -558,6 +580,12 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-2">
+          <a
+            href="#/risk-records"
+            class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-[#CBD5E1] text-xs font-medium text-[#1E293B] hover:border-[#0F766E] hover:text-[#0F766E]"
+          >
+            前往紀錄管理頁
+          </a>
           <button
             type="button"
             :disabled="riskStore.records.length === 0"
@@ -601,7 +629,15 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-for="rec in riskStore.records" :key="rec.id" class="hover:bg-[#F8FAFC]">
-              <td class="border border-[#E2E8F0] px-3 py-2.5 text-[#1E293B]">{{ rec.scenarioTitle }}</td>
+              <td class="border border-[#E2E8F0] px-3 py-2.5 text-[#1E293B]">
+                <span
+                  v-if="rec.recordName"
+                  class="inline-block mb-1 mr-1.5 px-1.5 py-0.5 rounded bg-[#CCFBF1] text-[#0F766E] text-[10px] font-medium"
+                >
+                  {{ rec.recordName }}
+                </span>
+                <span>{{ rec.scenarioTitle }}</span>
+              </td>
               <td class="border border-[#E2E8F0] px-3 py-2.5 font-medium text-[#1E293B]">{{ rec.hazardName }}</td>
               <td class="border border-[#E2E8F0] px-3 py-2.5">
                 <StatusBadge
