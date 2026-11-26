@@ -11,6 +11,15 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/guide',
+    name: 'guide',
+    component: () => import('@/views/GuideView.vue'),
+    meta: {
+      title: '使用說明與範例',
+      group: 'Overview',
+    },
+  },
+  {
     path: '/workspace',
     name: 'workspace',
     component: () => import('@/views/WorkspaceView.vue'),

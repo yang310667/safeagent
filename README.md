@@ -14,52 +14,54 @@ SafeAgent 為個人開源跨領域研究專案，作為陽明交通大學產業�
 
 ---
 
-## 核心功能（分階段建置）
+## 核心功能（已完成建置）
 
-1. **AI 危害辨識**（開發中）：根據作業情境描述，協助辨識潛在危害與可能後果。
-2. **職安知識檢索**（規劃中）：檢索具備官方資料來源與更新日期的職業安全衛生知識。
-3. **風險矩陣評估**（規劃中）：透過發生可能性與後果嚴重度，協助進行初步風險評估與改善前後對照。
-4. **職災案例分析**（規劃中）：透過公開職災案例，了解事故原因與預防措施。
+1. **AI 危害辨識（Single Agent + SSE）**：根據作業情境描述即時串流辨識潛在危害、主動反問缺少之現場條件，並呈現真實工具執行紀錄（`Agent Execution Trace`）。
+2. **職安知識檢索**：檢索來自全國法規資料庫與勞動部職安署之法規條文重點、官方指引與危害控制階層，每筆皆附官方 URL 與修正／查證日期。
+3. **風險矩陣評估與結構化報告**：依據職安署《風險評估指引》實作確定性 5×5 計算規則，須由使用者確認現場條件後計算改善前與剩餘風險，並以 Apache ECharts 視覺化及匯出 Markdown 報告。
+4. **職災案例分析**：收錄職安署公開重大職災案例之事故經過、直接／間接／基本原因分析與預防對策。
+5. **Agent 評估與測試、使用說明與範例**：內建 5 題基準測試集於六大指標之實測結果呈現，以及可一鍵帶入測試之教學範例頁面（`#/guide`）。
 
 ---
 
 ## 技術架構
 
-- **Frontend**：Vue 3 (`<script setup>`)、TypeScript、Vite、Vue Router (Hash History)、Pinia、Tailwind CSS、Lucide Vue Next
+- **Frontend**：Vue 3 (`<script setup>`)、TypeScript、Vite、Vue Router (Hash History)、Pinia、Tailwind CSS、Lucide Vue Next、Apache ECharts
 - **Backend**：Cloudflare Workers、TypeScript、Hono、Wrangler
-- **AI Agent（Day 3+）**：OpenAI Responses API、Single Agent Architecture、Function Calling、Structured Outputs
-- **Knowledge Base（Day 2+）**：JSON、Markdown（暫不使用關聯式或向量資料庫）
+- **AI Agent**：OpenAI Responses API（`/v1/responses`）、Single Agent Architecture、Function Calling、Structured Outputs、SSE Streaming
+- **Knowledge Base**：JSON、Markdown（暫不使用關聯式或向量資料庫）
 - **Monorepo & CI/CD**：npm workspaces、Vitest、ESLint、GitHub Actions、GitHub Pages
 
 ### Architecture Diagram
 
 ```mermaid
 flowchart TB
-  subgraph Client["Frontend (Vue 3 + Vite @ GitHub Pages)"]
-    UI["AppLayout & 桌面版工作台"]
-    Store["Pinia System Store"]
-    ApiClient["統一 API Client (Timeout / AbortController)"]
+  subgraph Client["Frontend (Vue 3 + ECharts @ GitHub Pages)"]
+    UI["AppLayout / Guide / Workspace / Risk Matrix"]
+    Store["Pinia Stores (System & Risk)"]
+    ApiClient["API Client & SSE Stream Parser"]
     UI --> Store --> ApiClient
   end
 
   subgraph Edge["Backend (Cloudflare Workers + Hono)"]
     MW["Request ID / CORS Allowlist / Rate Limit Stub"]
-    Health["GET /api/health"]
-    Config["GET /api/config"]
-    AgentRoute["POST /api/agent/chat (Day 1: HTTP 501)"]
-    MW --> Health
-    MW --> Config
+    CoreRoutes["/api/health, /api/config, /api/knowledge, /api/hazards, /api/accident-cases"]
+    RiskEval["/api/risk/calculate, /api/risk/report, /api/evaluation"]
+    AgentRoute["POST /api/agent/chat & /api/agent/chat/stream (SSE)"]
+    MW --> CoreRoutes
+    MW --> RiskEval
     MW --> AgentRoute
   end
 
-  subgraph Future["後續階段整合（Day 2+）"]
-    KB["官方知識庫 (JSON / Markdown)"]
+  subgraph DataAndAI["Knowledge Base & AI"]
+    KB["官方知識庫 & 公開案例 & 基準測試集 (JSON / Markdown)"]
     OpenAI["OpenAI Responses API"]
   end
 
-  ApiClient -->|HTTPS REST| MW
-  AgentRoute -.->|Day 3+| OpenAI
-  AgentRoute -.->|Day 2+| KB
+  ApiClient -->|HTTPS REST / SSE| MW
+  AgentRoute -->|Function Calling| OpenAI
+  CoreRoutes --> KB
+  AgentRoute --> KB
 ```
 
 ---
@@ -164,17 +166,17 @@ npm run build
 詳細階段規劃請參閱 [docs/ROADMAP.md](docs/ROADMAP.md)。
 
 - Day 1：專案初始化與基礎架構（已完成）
-- Day 2：官方職安資料蒐集與知識庫
-- Day 3：OpenAI Live Agent 與 Function Calling
-- Day 4：風險矩陣與結構化報告
-- Day 5：SSE Streaming 與 Agent Execution Trace
-- Day 6：Agent 測試與評估
-- Day 7：正式部署與備審展示優化
+- Day 2：官方職安資料蒐集與知識庫（已完成）
+- Day 3：OpenAI Live Agent 與 Function Calling（已完成）
+- Day 4：風險矩陣與結構化報告（已完成）
+- Day 5：SSE Streaming 與 Agent Execution Trace（已完成）
+- Day 6：Agent 測試與評估（已完成）
+- Day 7：正式部署與備審展示優化（已完成）
 
 ---
 
 ## 資料來源與研究限制
 
-- **待查證資料來源**：請參閱 [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)。
-- **研究限制**：Day 1 階段尚未串接 OpenAI API 與正式職安知識庫資料；系統無法取得完整現場環境條件，且不具正式作業許可審查效力。
+- **已查證官方資料來源**：請參閱 [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)。
+- **研究限制**：系統無法取得完整現場環境條件，所有 5×5 風險分數均須由使用者人工確認，且目前 `rateLimitMiddleware` 為預留介面尚未綁定 Cloudflare Rate Limiting 規則；本系統不具正式作業許可審查效力。
 - **免責聲明**：本系統產出或展示之任何資訊均僅供學術研究與自主學習參考，正式作業請依職業安全衛生法規並由合格專業人員評估辦理。

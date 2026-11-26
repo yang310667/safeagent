@@ -11,6 +11,7 @@ export interface WorkspaceRiskDraft {
 export const useRiskStore = defineStore('risk', () => {
   const records = ref<RiskAssessmentRecord[]>([]);
   const workspaceDraft = ref<WorkspaceRiskDraft | null>(null);
+  const workspacePromptDraft = ref<string | null>(null);
 
   function addRecord(record: RiskAssessmentRecord): void {
     records.value = [record, ...records.value];
@@ -28,12 +29,18 @@ export const useRiskStore = defineStore('risk', () => {
     workspaceDraft.value = draft;
   }
 
+  function setWorkspacePromptDraft(prompt: string | null): void {
+    workspacePromptDraft.value = prompt;
+  }
+
   return {
     records,
     workspaceDraft,
+    workspacePromptDraft,
     addRecord,
     removeRecord,
     clearRecords,
     setWorkspaceDraft,
+    setWorkspacePromptDraft,
   };
 });

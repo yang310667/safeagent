@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAppRouter } from '@/router';
 import { useSystemStore } from '@/stores/system';
+import GuideView from '@/views/GuideView.vue';
 import WorkspaceView from '@/views/WorkspaceView.vue';
 
 describe('Router Navigation & Workspace Interaction', () => {
@@ -18,6 +19,7 @@ describe('Router Navigation & Workspace Interaction', () => {
     const router = createAppRouter();
     const expectedPaths = [
       '/',
+      '/guide',
       '/workspace',
       '/risk-matrix',
       '/knowledge',
@@ -170,5 +172,30 @@ describe('Router Navigation & Workspace Interaction', () => {
     expect(wrapper.get('[data-testid="analysis-report-panel"]').text()).toContain('被夾、被捲');
     expect(wrapper.get('[data-testid="trace-list"]').text()).toContain('search_safety_knowledge');
     expect(wrapper.get('[data-testid="reference-source-list"]').text()).toContain('2026-06-30');
+  });
+
+  it('renders GuideView usage examples and prefills WorkspaceView when clicking try button', async () => {
+    const router = createAppRouter();
+    await router.push('/guide');
+    await router.isReady();
+
+    const guideWrapper = mount(GuideView, {
+      global: { plugins: [router] },
+    });
+    expect(guideWrapper.get('[data-testid="guide-examples-list"]').text()).toContain(
+      '範例 1｜廠區頂樓排氣風車維修',
+    );
+    await guideWrapper.get('[data-testid="try-example-guide-ex-1"]').trigger('click');
+    await flushPromises();
+
+    expect(router.currentRoute.value.path).toBe('/workspace');
+
+    const workspaceWrapper = mount(WorkspaceView, {
+      global: { plugins: [router] },
+    });
+    await flushPromises();
+    expect(
+      (workspaceWrapper.get('[data-testid="workspace-input"]').element as HTMLTextAreaElement).value,
+    ).toContain('廠區頂樓');
   });
 });

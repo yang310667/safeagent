@@ -11,6 +11,7 @@ import {
   Database,
   FileSearch,
   Grid2x2,
+  HelpCircle,
   Info,
   Layers,
   Radar,
@@ -106,7 +107,7 @@ const agentTone = computed<BadgeTone>(() =>
           <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-teal-50 text-[#0F766E] border border-teal-200 text-xs font-medium">
             <span>研究概念驗證（Proof of Concept）</span>
             <span aria-hidden="true">·</span>
-            <span>Day 6 SSE 串流與基準評估階段</span>
+            <span>Day 7 線上展示版本（GitHub Pages + Cloudflare Workers）</span>
           </div>
 
           <div>
@@ -142,6 +143,14 @@ const agentTone = computed<BadgeTone>(() =>
             >
               <Info class="h-4 w-4 text-[#64748B]" aria-hidden="true" />
               <span>了解專案架構</span>
+            </RouterLink>
+
+            <RouterLink
+              to="/guide"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white text-[#1E293B] border border-[#E2E8F0] text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              <HelpCircle class="h-4 w-4 text-[#0F766E]" aria-hidden="true" />
+              <span>使用說明與範例</span>
             </RouterLink>
           </div>
         </div>

@@ -12,6 +12,7 @@ import {
   FlaskConical,
   Github,
   Grid2x2,
+  HelpCircle,
   Home,
   Info,
   NotebookPen,
@@ -44,7 +45,10 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     title: 'Overview',
-    items: [{ label: '專案首頁', to: '/', icon: Home }],
+    items: [
+      { label: '專案首頁', to: '/', icon: Home },
+      { label: '使用說明與範例', to: '/guide', icon: HelpCircle },
+    ],
   },
   {
     title: 'Workspace',

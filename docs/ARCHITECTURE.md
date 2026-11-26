@@ -61,8 +61,8 @@ safeagent/
 - 正式環境：透過 `wrangler secret put OPENAI_API_KEY` 儲存於 Cloudflare Workers Secret，不寫入 `wrangler.jsonc`。
 - 前端環境變數（`VITE_*`）僅放置公開網址與版本號，嚴禁放置任何 API Key 或敏感憑證。
 
-## 7. 已知技術限制（Day 6）
+## 7. 已知技術限制（Day 7）
 
-- 尚未完成 Cloudflare Workers 正式環境線上部署（預定於 Day 7 與使用者確認後執行）。
+- 已完成 GitHub Pages（`https://yang310667.github.io/safeagent/`）與 Cloudflare Workers 正式環境連線與瀏覽器實測驗證。
 - `rateLimitMiddleware` 目前為 pass-through 預留介面，尚未綁定 Cloudflare Rate Limiting 規則，尚不具備真實限流防護。
 - 前端僅針對桌面版視窗（1280×800 以上）設計，未包含手機或平板版面適配。

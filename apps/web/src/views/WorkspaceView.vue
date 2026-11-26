@@ -98,7 +98,11 @@ const reservedTools: Array<{ name: AgentToolName; label: string; enabled: boolea
 ];
 
 const selectedScenarioId = ref<string | null>(null);
-const promptInput = ref('');
+const initialDraftPrompt = riskStore.workspacePromptDraft ?? '';
+if (riskStore.workspacePromptDraft) {
+  riskStore.setWorkspacePromptDraft(null);
+}
+const promptInput = ref(initialDraftPrompt);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const conversationId = ref<string | null>(null);
