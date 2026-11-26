@@ -32,6 +32,7 @@ import {
 import StatusBadge from '@/components/StatusBadge.vue';
 import { streamAgentChat } from '@/services/agent.service';
 import { ApiClientError } from '@/services/api-client';
+import { useKnowledgeStore } from '@/stores/knowledge';
 import { useRiskStore } from '@/stores/risk';
 import { useSystemStore } from '@/stores/system';
 
@@ -43,6 +44,7 @@ interface ConversationMessage {
 }
 
 const systemStore = useSystemStore();
+const knowledgeStore = useKnowledgeStore();
 const riskStore = useRiskStore();
 const router = useRouter();
 
@@ -201,6 +203,8 @@ async function handleSubmitAnalysis() {
       {
         message: trimmed,
         conversationId: conversationId.value,
+        customKnowledge:
+          knowledgeStore.customArticles.length > 0 ? knowledgeStore.customArticles : undefined,
       },
       {
         onStatus: (data) => {
@@ -375,6 +379,12 @@ onBeforeUnmount(() => {
               <StatusBadge
                 :label="systemStore.agentStatusLabel"
                 :tone="isAgentEnabled ? 'success' : 'neutral'"
+              />
+              <StatusBadge
+                v-if="knowledgeStore.customArticles.length > 0"
+                :label="`已掛載擴充知識 ${knowledgeStore.customArticles.length} 筆`"
+                tone="primary"
+                :show-dot="false"
               />
             </div>
             <p class="text-[11px] text-[#64748B]">

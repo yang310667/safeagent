@@ -3,6 +3,7 @@ import type {
   AgentStructuredAnalysis,
   AgentToolName,
   AgentToolTraceItem,
+  KnowledgeArticle,
   ReferenceSourceItem,
   SseAgentStatusData,
   SseEventType,
@@ -18,8 +19,8 @@ import {
 } from '../tools/safety-tools';
 import { SAFEAGENT_OUTPUT_JSON_SCHEMA, SAFEAGENT_SYSTEM_INSTRUCTIONS } from './prompts';
 
+export const DEFAULT_OPENAI_MODEL = 'gpt-4.1-mini';
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
-const DEFAULT_OPENAI_MODEL = 'gpt-4.1-mini';
 const OPENAI_REQUEST_TIMEOUT_MS = 25000;
 const MAX_TOOL_ROUNDS = 4;
 
@@ -37,7 +38,7 @@ interface OpenAIOutputItem {
   content?: OpenAIOutputTextContent[];
 }
 
-interface OpenAIResponsesPayload {
+export interface OpenAIResponsesPayload {
   id: string;
   model?: string;
   output_text?: string;
@@ -72,6 +73,7 @@ export interface RunAgentTurnOptions {
   model?: string;
   message: string;
   conversationId: string | null;
+  customKnowledge?: KnowledgeArticle[];
   fetchImpl?: typeof fetch;
   onEvent?: AgentEventEmitter;
 }
@@ -89,7 +91,7 @@ function deduplicateSources(sources: ReferenceSourceItem[]): ReferenceSourceItem
   return unique;
 }
 
-function extractOutputText(payload: OpenAIResponsesPayload): string {
+export function extractOutputText(payload: OpenAIResponsesPayload): string {
   if (typeof payload.output_text === 'string' && payload.output_text.trim().length > 0) {
     return payload.output_text;
   }
@@ -134,7 +136,7 @@ function parseStructuredOutput(rawText: string): ParsedModelOutput {
   }
 }
 
-async function callResponsesApi(
+export async function callResponsesApi(
   apiKey: string,
   body: Record<string, unknown>,
   fetchImpl: typeof fetch,
@@ -296,7 +298,12 @@ export async function runSingleAgentTurn(
       };
       await emit?.('tool.started', startedPayload);
 
-      const result = executeSafetyTool(toolName, rawArgs, callId);
+      const result = executeSafetyTool(
+        toolName,
+        rawArgs,
+        callId,
+        options.customKnowledge ?? [],
+      );
       toolTraces.push(result.traceItem);
       collectedSources.push(...result.sources);
 

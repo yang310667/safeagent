@@ -15,6 +15,7 @@ export interface ConfigResponse {
 export interface AgentChatRequest {
   message: string;
   conversationId: string | null;
+  customKnowledge?: KnowledgeArticle[];
 }
 
 export interface IdentifiedHazardItem {
@@ -184,6 +185,44 @@ export interface EvaluationReportResponse {
   benchmarkCases: EvaluationCaseBenchmark[];
   criteriaMetrics: EvaluationCriterionMetric[];
   caseResults: EvaluationCaseResult[];
+}
+
+export interface LearningLogEntry {
+  id: string;
+  studyDate: string;
+  topic: string;
+  category: KnowledgeCategory;
+  keyTakeaways: string[];
+  reflection: string;
+  references: string[];
+  createdAt: string;
+}
+
+export interface LearningPlanRequest {
+  goal: string;
+  weeklyHours: number;
+  targetWeeks: number;
+  focusCategories: KnowledgeCategory[];
+  completedTopics?: string[];
+}
+
+export interface LearningPlanItem {
+  weekLabel: string;
+  topic: string;
+  category: KnowledgeCategory;
+  objectives: string[];
+  recommendedSources: string[];
+  practicePrompt: string;
+  estimatedHours: number;
+}
+
+export interface LearningPlanResponse {
+  planTitle: string;
+  model: string;
+  generatedAt: string;
+  weeklySchedule: LearningPlanItem[];
+  studyAdvice: string;
+  disclaimer: string;
 }
 
 export interface ScenarioPreset {

@@ -10,6 +10,7 @@ import type {
   HealthResponse,
   KnowledgeArticle,
   KnowledgeSearchResponse,
+  LearningPlanResponse,
   PreliminarySafetyReport,
   RiskAssessmentRecord,
 } from '@safeagent/shared';
@@ -618,5 +619,150 @@ describe('SafeAgent Worker API', () => {
     expect(caseResult.checks.riskCalculationAccuracy).toBe(true);
     expect(caseResult.checks.clarificationCapability).toBe(true);
     expect(caseResult.checks.hallucinationControl).toBe(true);
+  });
+
+  it('POST /api/agent/chat searches user-supplied customKnowledge alongside built-in knowledge', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'resp_custom_1',
+            model: 'gpt-4.1-mini',
+            output: [
+              {
+                type: 'function_call',
+                call_id: 'call_custom_kb',
+                name: 'search_safety_knowledge',
+                arguments: JSON.stringify({ query: '有機溶劑作業指導' }),
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'resp_custom_2',
+            model: 'gpt-4.1-mini',
+            output_text: JSON.stringify({
+              reply: '已檢索您匯入的有機溶劑作業指導文件。',
+              scenarioSummary: '溶劑清潔作業',
+              identifiedHazards: [],
+              clarificationQuestions: ['局部排氣風速是否確認？'],
+              recommendedActions: ['確認局部排氣裝置運轉正常'],
+              limitationsNotice: '僅供研究參考。',
+              preliminaryReportMarkdown: '',
+            }),
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    const res = await app.request(
+      '/api/agent/chat',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: '請依我匯入的有機溶劑作業指導分析風險',
+          conversationId: null,
+          customKnowledge: [
+            {
+              id: 'custom-solvent-1',
+              title: '廠區有機溶劑作業指導手冊',
+              type: 'guideline',
+              category: '化學品安全',
+              summary: '補充有機溶劑局部排氣與防毒面具規範。',
+              keyPoints: ['作業前確認局部排氣裝置正常運轉'],
+              applicableScenarios: ['化學品作業'],
+              contentMarkdown: '# 廠區有機溶劑作業指導手冊\n- 確認局部排氣裝置',
+              keywords: ['有機溶劑作業指導'],
+              source: {
+                title: '廠區有機溶劑作業指導手冊',
+                publisher: '廠區環安衛部門彙整',
+                officialUrl: 'https://www.osha.gov.tw/',
+                updatedAt: '2026-11-26',
+                citationSummary: '使用者匯入文件',
+              },
+            },
+          ],
+        }),
+      },
+      { ...defaultEnv, AGENT_ENABLED: 'true' },
+    );
+
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as AgentChatResponse;
+    expect(data.referenceSources.some((s) => s.title.includes('廠區有機溶劑作業指導手冊'))).toBe(
+      true,
+    );
+  });
+
+  it('POST /api/learning/plan validates input and generates AI study plan when enabled', async () => {
+    const disabledRes = await app.request(
+      '/api/learning/plan',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: '準備職業安全衛生管理員訓練',
+          weeklyHours: 5,
+          targetWeeks: 2,
+          focusCategories: ['職業安全衛生法規'],
+        }),
+      },
+      defaultEnv,
+    );
+    expect(disabledRes.status).toBe(503);
+
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'resp_plan_1',
+          model: 'gpt-4.1-mini',
+          output_text: JSON.stringify({
+            planTitle: '職安管理員先修 2 週計畫',
+            weeklySchedule: [
+              {
+                weekLabel: '第 1 週',
+                topic: '職業安全衛生法與設施規則基礎',
+                category: '職業安全衛生法規',
+                objectives: ['掌握第6條與第57條重點'],
+                recommendedSources: ['全國法規資料庫－職業安全衛生法（pcode=N0060001）'],
+                practicePrompt: '分析輸送帶未停機清潔之危害與第57條適用重點',
+                estimatedHours: 5,
+              },
+            ],
+            studyAdvice: '建議每週搭配 Workspace 案例實作練習。',
+            disclaimer: '此為 AI 建議規劃，非已完成學習紀錄。',
+          }),
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', mockFetch);
+
+    const okRes = await app.request(
+      '/api/learning/plan',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: '準備職業安全衛生管理員訓練',
+          weeklyHours: 5,
+          targetWeeks: 2,
+          focusCategories: ['職業安全衛生法規'],
+        }),
+      },
+      { ...defaultEnv, AGENT_ENABLED: 'true' },
+    );
+    expect(okRes.status).toBe(200);
+    const plan = (await okRes.json()) as LearningPlanResponse;
+    expect(plan.planTitle).toContain('職安管理員');
+    expect(plan.weeklySchedule).toHaveLength(1);
+    expect(plan.weeklySchedule[0].category).toBe('職業安全衛生法規');
   });
 });

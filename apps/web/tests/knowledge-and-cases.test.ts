@@ -1,5 +1,6 @@
+import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient } from '@/services/api-client';
 import { fetchAccidentCases } from '@/services/accident-cases.service';
 import { fetchHazards, fetchKnowledgeArticles } from '@/services/knowledge.service';
@@ -7,6 +8,10 @@ import AccidentCasesView from '@/views/AccidentCasesView.vue';
 import KnowledgeView from '@/views/KnowledgeView.vue';
 
 describe('Day 2 Knowledge Base & Accident Cases Services and Views', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });

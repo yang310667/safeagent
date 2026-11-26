@@ -120,12 +120,18 @@ export interface SearchKnowledgeParams {
   type?: string;
 }
 
-export function searchKnowledgeArticles(params: SearchKnowledgeParams = {}): KnowledgeSearchResponse {
+export function searchKnowledgeArticles(
+  params: SearchKnowledgeParams = {},
+  extraArticles: KnowledgeArticle[] = [],
+): KnowledgeSearchResponse {
   const query = normalizeQuery(params.query);
   const category = params.category?.trim();
   const type = params.type?.trim() as KnowledgeEntryType | undefined;
 
-  const items = knowledgeArticles
+  const combinedArticles =
+    extraArticles.length > 0 ? [...extraArticles, ...knowledgeArticles] : knowledgeArticles;
+
+  const items = combinedArticles
     .filter((article) => {
       if (category && category !== '全部' && article.category !== category) {
         return false;

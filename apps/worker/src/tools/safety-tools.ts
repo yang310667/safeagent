@@ -4,6 +4,7 @@ import {
   isValidRiskScale,
   type AgentToolName,
   type AgentToolTraceItem,
+  type KnowledgeArticle,
   type ReferenceSourceItem,
 } from '@safeagent/shared';
 import {
@@ -220,6 +221,7 @@ export function executeSafetyTool(
   toolName: string,
   rawArgs: string,
   callId: string,
+  customKnowledge: KnowledgeArticle[] = [],
 ): ToolExecutionResult {
   const startedAt = Date.now();
   const args = parseArguments(rawArgs);
@@ -229,10 +231,10 @@ export function executeSafetyTool(
 
   if (toolName === 'search_safety_knowledge') {
     const type = typeof args.type === 'string' ? args.type : undefined;
-    let result = searchKnowledgeArticles({ query, category, type });
+    let result = searchKnowledgeArticles({ query, category, type }, customKnowledge);
     let broadened = false;
     if (result.total === 0 && (category || type)) {
-      result = searchKnowledgeArticles({ query });
+      result = searchKnowledgeArticles({ query }, customKnowledge);
       broadened = result.total > 0;
     }
     const topItems = result.items.slice(0, 5).map((item) => ({
@@ -242,6 +244,7 @@ export function executeSafetyTool(
       category: item.category,
       summary: item.summary,
       keyPoints: item.keyPoints,
+      contentExcerpt: item.contentMarkdown.slice(0, 600),
       source: item.source,
     }));
     const sources = deduplicateSources(topItems.map((item) => item.source));

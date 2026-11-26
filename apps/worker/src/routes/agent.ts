@@ -1,15 +1,95 @@
 import { Hono, type Context } from 'hono';
-import type { AgentChatRequest, ApiErrorResponse, SseErrorData } from '@safeagent/shared';
+import type {
+  AgentChatRequest,
+  ApiErrorResponse,
+  KnowledgeArticle,
+  KnowledgeCategory,
+  SseErrorData,
+} from '@safeagent/shared';
 import { AgentServiceError, runSingleAgentTurn } from '../agent/responses-client';
 import { createSseHeaders, formatSseEvent } from '../services/sse';
 import type { WorkerEnv } from '../types/env';
 
 export const agentRoutes = new Hono<WorkerEnv>();
 
+const MAX_CUSTOM_KNOWLEDGE_ITEMS = 20;
+
+function sanitizeCustomKnowledge(raw: unknown): KnowledgeArticle[] {
+  if (!Array.isArray(raw)) return [];
+  const valid: KnowledgeArticle[] = [];
+
+  for (const item of raw.slice(0, MAX_CUSTOM_KNOWLEDGE_ITEMS)) {
+    if (typeof item !== 'object' || item === null) continue;
+    const candidate = item as Partial<KnowledgeArticle>;
+    if (
+      typeof candidate.id !== 'string' ||
+      typeof candidate.title !== 'string' ||
+      !candidate.title.trim() ||
+      typeof candidate.summary !== 'string'
+    ) {
+      continue;
+    }
+
+    const src = candidate.source;
+    valid.push({
+      id: candidate.id.slice(0, 120),
+      title: candidate.title.trim().slice(0, 200),
+      type: candidate.type === 'regulation' ? 'regulation' : 'guideline',
+      category: (candidate.category || '職安基礎') as KnowledgeCategory,
+      summary: candidate.summary.slice(0, 1000),
+      keyPoints: Array.isArray(candidate.keyPoints)
+        ? candidate.keyPoints
+            .filter((p): p is string => typeof p === 'string')
+            .slice(0, 20)
+            .map((p) => p.slice(0, 500))
+        : [],
+      applicableScenarios: Array.isArray(candidate.applicableScenarios)
+        ? candidate.applicableScenarios
+            .filter((s): s is string => typeof s === 'string')
+            .slice(0, 10)
+        : [],
+      contentMarkdown:
+        typeof candidate.contentMarkdown === 'string'
+          ? candidate.contentMarkdown.slice(0, 6000)
+          : '',
+      keywords: Array.isArray(candidate.keywords)
+        ? candidate.keywords.filter((k): k is string => typeof k === 'string').slice(0, 20)
+        : [],
+      source: {
+        title: typeof src?.title === 'string' && src.title.trim() ? src.title.trim() : candidate.title.trim(),
+        publisher:
+          typeof src?.publisher === 'string' && src.publisher.trim()
+            ? src.publisher.trim()
+            : '使用者補充匯入',
+        officialUrl:
+          typeof src?.officialUrl === 'string' && src.officialUrl.trim()
+            ? src.officialUrl.trim()
+            : 'https://www.osha.gov.tw/',
+        updatedAt:
+          typeof src?.updatedAt === 'string' && src.updatedAt.trim()
+            ? src.updatedAt.trim()
+            : new Date().toISOString().slice(0, 10),
+        citationSummary:
+          typeof src?.citationSummary === 'string' && src.citationSummary.trim()
+            ? src.citationSummary.trim()
+            : '由使用者匯入至擴充知識庫之參考文件。',
+      },
+    });
+  }
+
+  return valid;
+}
+
 async function validateAndAuthorizeAgentRequest(
   c: Context<WorkerEnv>,
 ): Promise<
-  | { ok: true; message: string; conversationId: string | null; apiKey: string }
+  | {
+      ok: true;
+      message: string;
+      conversationId: string | null;
+      customKnowledge: KnowledgeArticle[];
+      apiKey: string;
+    }
   | { ok: false; response: Response }
 > {
   const requestId = c.get('requestId');
@@ -81,6 +161,7 @@ async function validateAndAuthorizeAgentRequest(
     ok: true,
     message: body.message.trim(),
     conversationId: body.conversationId ?? null,
+    customKnowledge: sanitizeCustomKnowledge(body.customKnowledge),
     apiKey,
   };
 }
@@ -98,6 +179,7 @@ agentRoutes.post('/agent/chat', async (c) => {
       model: c.env?.OPENAI_MODEL,
       message: validated.message,
       conversationId: validated.conversationId,
+      customKnowledge: validated.customKnowledge,
     });
     return c.json(result, 200);
   } catch (err) {
@@ -146,6 +228,7 @@ agentRoutes.post('/agent/chat/stream', async (c) => {
           model,
           message: validated.message,
           conversationId: validated.conversationId,
+          customKnowledge: validated.customKnowledge,
           onEvent: (event, data) => {
             sendEvent(event, data);
           },

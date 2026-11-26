@@ -9,6 +9,7 @@ import { configRoutes } from './routes/config';
 import { evaluationRoutes } from './routes/evaluation';
 import { healthRoutes } from './routes/health';
 import { knowledgeRoutes } from './routes/knowledge';
+import { learningRoutes } from './routes/learning';
 import { riskRoutes } from './routes/risk';
 import type { WorkerEnv } from './types/env';
 
@@ -26,6 +27,7 @@ export function createApp(): Hono<WorkerEnv> {
   app.route('/api', accidentCaseRoutes);
   app.route('/api', riskRoutes);
   app.route('/api', evaluationRoutes);
+  app.route('/api', learningRoutes);
 
   app.notFound((c) => {
     const payload: ApiErrorResponse = {
