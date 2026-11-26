@@ -6,8 +6,10 @@ import { requestIdMiddleware } from './middleware/request-id';
 import { accidentCaseRoutes } from './routes/accident-cases';
 import { agentRoutes } from './routes/agent';
 import { configRoutes } from './routes/config';
+import { evaluationRoutes } from './routes/evaluation';
 import { healthRoutes } from './routes/health';
 import { knowledgeRoutes } from './routes/knowledge';
+import { riskRoutes } from './routes/risk';
 import type { WorkerEnv } from './types/env';
 
 export function createApp(): Hono<WorkerEnv> {
@@ -22,6 +24,8 @@ export function createApp(): Hono<WorkerEnv> {
   app.route('/api', agentRoutes);
   app.route('/api', knowledgeRoutes);
   app.route('/api', accidentCaseRoutes);
+  app.route('/api', riskRoutes);
+  app.route('/api', evaluationRoutes);
 
   app.notFound((c) => {
     const payload: ApiErrorResponse = {

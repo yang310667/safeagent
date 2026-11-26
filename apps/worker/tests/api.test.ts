@@ -4,13 +4,18 @@ import type {
   AgentChatResponse,
   ApiErrorResponse,
   ConfigResponse,
+  EvaluationCaseResult,
+  EvaluationReportResponse,
   HazardCatalogResponse,
   HealthResponse,
   KnowledgeArticle,
   KnowledgeSearchResponse,
+  PreliminarySafetyReport,
+  RiskAssessmentRecord,
 } from '@safeagent/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/index';
+import { executeSafetyTool } from '../src/tools/safety-tools';
 
 const defaultEnv = {
   APP_VERSION: '0.1.0',
@@ -358,5 +363,260 @@ describe('SafeAgent Worker API', () => {
     const data = (await res.json()) as ApiErrorResponse;
     expect(data.error.code).toBe('NOT_FOUND');
     expect(data.requestId).toBeTruthy();
+  });
+
+  it('POST /api/risk/calculate enforces user confirmation and computes initial + residual 5x5 risk grades', async () => {
+    const unconfirmedRes = await app.request(
+      '/api/risk/calculate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hazardName: '屋頂高處墜落',
+          scenarioTitle: '頂樓排氣風車維修',
+          initialProbability: 4,
+          initialSeverity: 5,
+          controlsApplied: ['安全母索', '全身背負式安全帶'],
+          userConfirmed: false,
+        }),
+      },
+      defaultEnv,
+    );
+    expect(unconfirmedRes.status).toBe(400);
+    const err = (await unconfirmedRes.json()) as ApiErrorResponse;
+    expect(err.error.code).toBe('USER_CONFIRMATION_REQUIRED');
+
+    const okRes = await app.request(
+      '/api/risk/calculate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hazardName: '屋頂高處墜落',
+          scenarioTitle: '頂樓排氣風車維修',
+          initialProbability: 4,
+          initialSeverity: 5,
+          controlsApplied: ['鋪設防踏穿踏板', '安全母索與全身背負式安全帶'],
+          residualProbability: 2,
+          residualSeverity: 3,
+          userConfirmed: true,
+        }),
+      },
+      defaultEnv,
+    );
+    expect(okRes.status).toBe(200);
+    const record = (await okRes.json()) as RiskAssessmentRecord;
+    expect(record.initialRisk.score).toBe(20);
+    expect(record.initialRisk.riskLevel).toBe('high');
+    expect(record.residualRisk?.score).toBe(6);
+    expect(record.residualRisk?.riskLevel).toBe('medium');
+  });
+
+  it('POST /api/risk/report generates structured Markdown report with PoC disclaimer', async () => {
+    const res = await app.request(
+      '/api/risk/report',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenarioTitle: '頂樓排氣風車維修',
+          scenarioSummary: '高處作業搭配斷電上鎖',
+          hazards: [
+            {
+              hazardType: '墜落、滾落',
+              description: '鄰近屋頂邊緣作業',
+              potentialConsequence: '高處墜落重傷',
+              recommendedControls: ['安全母索', '安全帶'],
+              relatedRegulations: ['職業安全衛生設施規則第281條'],
+            },
+          ],
+          recommendedActions: ['確認風速後再作業'],
+        }),
+      },
+      defaultEnv,
+    );
+    expect(res.status).toBe(200);
+    const report = (await res.json()) as PreliminarySafetyReport;
+    expect(report.markdownContent).toContain('# SafeAgent 初步危害辨識與風險評估報告');
+    expect(report.markdownContent).toContain('不得取代合格職業安全衛生人員');
+  });
+
+  it('calculate_risk tool blocks unconfirmed scores and calculates confirmed risk deterministically', () => {
+    const blocked = executeSafetyTool(
+      'calculate_risk',
+      JSON.stringify({
+        hazardName: '感電危害',
+        probability: 4,
+        severity: 5,
+        userConfirmedConditions: false,
+      }),
+      'call_unconfirmed',
+    );
+    expect(JSON.parse(blocked.outputJson).status).toBe('NEEDS_USER_CONFIRMATION');
+
+    const calculated = executeSafetyTool(
+      'calculate_risk',
+      JSON.stringify({
+        hazardName: '感電危害',
+        probability: 4,
+        severity: 5,
+        residualProbability: 1,
+        residualSeverity: 4,
+        userConfirmedConditions: true,
+      }),
+      'call_confirmed',
+    );
+    const parsed = JSON.parse(calculated.outputJson);
+    expect(parsed.status).toBe('CALCULATED');
+    expect(parsed.initialRisk.score).toBe(20);
+    expect(parsed.initialRisk.riskLevel).toBe('high');
+    expect(parsed.residualRisk.score).toBe(4);
+    expect(parsed.residualRisk.riskLevel).toBe('low');
+  });
+
+  it('POST /api/agent/chat/stream emits real SSE status, tool.started, tool.completed, message.delta, and message.completed events with CORS headers', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'resp_sse_1',
+            model: 'gpt-4.1-mini',
+            output: [
+              {
+                type: 'function_call',
+                call_id: 'call_sse_kb',
+                name: 'search_safety_knowledge',
+                arguments: JSON.stringify({ query: '第57條' }),
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'resp_sse_2',
+            model: 'gpt-4.1-mini',
+            output_text: JSON.stringify({
+              reply: '已完成 SSE 工具呼叫分析。',
+              scenarioSummary: '機械維修停機上鎖檢查',
+              identifiedHazards: [],
+              clarificationQuestions: ['是否已上鎖掛牌？'],
+              recommendedActions: ['執行 LOTO'],
+              limitationsNotice: '研究概念驗證用途。',
+              preliminaryReportMarkdown: '',
+            }),
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    const res = await app.request(
+      '/api/agent/chat/stream',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost:5173',
+        },
+        body: JSON.stringify({
+          message: '機械設備維修作業',
+          conversationId: null,
+        }),
+      },
+      {
+        ...defaultEnv,
+        AGENT_ENABLED: 'true',
+      },
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('text/event-stream');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173');
+
+    const bodyText = await res.text();
+    expect(bodyText).toContain('event: agent.status');
+    expect(bodyText).toContain('event: tool.started');
+    expect(bodyText).toContain('event: tool.completed');
+    expect(bodyText).toContain('event: message.delta');
+    expect(bodyText).toContain('event: message.completed');
+    expect(bodyText).not.toContain('sk-test-secret');
+  });
+
+  it('GET /api/evaluation returns benchmark suite and POST /api/evaluation/run scores an Agent turn', async () => {
+    const evalRes = await app.request('/api/evaluation', { method: 'GET' }, defaultEnv);
+    expect(evalRes.status).toBe(200);
+    const evalData = (await evalRes.json()) as EvaluationReportResponse;
+    expect(evalData.benchmarkCases).toHaveLength(5);
+    expect(evalData.criteriaMetrics).toHaveLength(6);
+
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'resp_eval_1',
+            model: 'gpt-4.1-mini',
+            output: [
+              {
+                type: 'function_call',
+                call_id: 'call_eval_kb',
+                name: 'search_safety_knowledge',
+                arguments: JSON.stringify({ query: '屋頂' }),
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'resp_eval_2',
+            model: 'gpt-4.1-mini',
+            output_text: JSON.stringify({
+              reply: '依職業安全衛生法及職業安全衛生設施規則，屋頂高處作業具墜落風險。',
+              scenarioSummary: '頂樓排氣風車維修作業',
+              identifiedHazards: [
+                {
+                  hazardType: '墜落、滾落',
+                  description: '屋頂高處作業墜落風險',
+                  potentialConsequence: '嚴重傷亡',
+                  recommendedControls: ['安全母索', '全身安全帶'],
+                  relatedRegulations: ['職業安全衛生法', '職業安全衛生設施規則'],
+                },
+              ],
+              clarificationQuestions: ['作業高度是否超過 2 公尺？'],
+              recommendedActions: ['確認上鎖掛牌與防墜設施'],
+              limitationsNotice: 'PoC 輔助分析。',
+              preliminaryReportMarkdown: '',
+            }),
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    const runRes = await app.request(
+      '/api/evaluation/run',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId: 'eval-case-1-exhaust-fan' }),
+      },
+      { ...defaultEnv, AGENT_ENABLED: 'true' },
+    );
+    expect(runRes.status).toBe(200);
+    const caseResult = (await runRes.json()) as EvaluationCaseResult;
+    expect(caseResult.caseId).toBe('eval-case-1-exhaust-fan');
+    expect(caseResult.checks.hazardCompleteness).toBe(true);
+    expect(caseResult.checks.regulationAccuracy).toBe(true);
+    expect(caseResult.checks.sourceTraceability).toBe(true);
+    expect(caseResult.checks.riskCalculationAccuracy).toBe(true);
+    expect(caseResult.checks.clarificationCapability).toBe(true);
+    expect(caseResult.checks.hallucinationControl).toBe(true);
   });
 });

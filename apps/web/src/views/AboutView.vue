@@ -18,9 +18,9 @@ const roadmapPhases = [
   { day: 'Day 1', title: '專案初始化與基礎架構', status: '已完成', tone: 'success' as const },
   { day: 'Day 2', title: '官方職安資料蒐集與知識庫', status: '已完成', tone: 'success' as const },
   { day: 'Day 3', title: 'OpenAI Live Agent 與 Function Calling', status: '已完成', tone: 'success' as const },
-  { day: 'Day 4', title: '風險矩陣與結構化報告', status: '待開發', tone: 'neutral' as const },
-  { day: 'Day 5', title: 'SSE Streaming 與 Agent Execution Trace', status: '待開發', tone: 'neutral' as const },
-  { day: 'Day 6', title: 'Agent 測試與評估', status: '待開發', tone: 'neutral' as const },
+  { day: 'Day 4', title: '風險矩陣與結構化報告', status: '已完成', tone: 'success' as const },
+  { day: 'Day 5', title: 'SSE Streaming 與 Agent Execution Trace', status: '已完成', tone: 'success' as const },
+  { day: 'Day 6', title: 'Agent 測試與評估', status: '已完成', tone: 'success' as const },
   { day: 'Day 7', title: '正式部署與備審展示優化', status: '待開發', tone: 'neutral' as const },
 ];
 
@@ -128,7 +128,7 @@ const dataSources = [
           <span>研究限制與技術邊界</span>
         </h2>
         <ul class="space-y-1.5 text-xs text-[#475569] leading-relaxed">
-          <li>· 目前已完成官方職安知識庫（Day 2）與 OpenAI Single Agent 工具呼叫（Day 3）；5×5 風險矩陣計算規則將於 Day 4 實作。</li>
+          <li>· 目前已完成知識庫、OpenAI Live Agent、5×5 風險矩陣報告、SSE 即時串流與基準測試評估框架（Day 1–Day 6），預定於 Day 7 執行正式雲端部署與備審整理。</li>
           <li>· AI 模型可能存在遺漏現場特殊條件或推論誤差，不得作為唯一決策依據。</li>
           <li>· 系統未包含正式作業許可簽核功能，亦未完成現場實證評估。</li>
         </ul>

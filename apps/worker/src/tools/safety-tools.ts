@@ -1,4 +1,11 @@
-import type { AgentToolName, AgentToolTraceItem, ReferenceSourceItem } from '@safeagent/shared';
+import {
+  calculateRiskGrade,
+  formatPreliminaryReportMarkdown,
+  isValidRiskScale,
+  type AgentToolName,
+  type AgentToolTraceItem,
+  type ReferenceSourceItem,
+} from '@safeagent/shared';
 import {
   searchAccidentCases,
   searchHazards,
@@ -11,6 +18,15 @@ export interface OpenAIResponsesToolDefinition {
   description: string;
   parameters: Record<string, unknown>;
 }
+
+const RISK_GUIDELINE_SOURCE: ReferenceSourceItem = {
+  title: '勞動部職業安全衛生署－風險評估指引（5×5 風險矩陣規則）',
+  publisher: '勞動部職業安全衛生署',
+  officialUrl: 'https://www.osha.gov.tw/',
+  updatedAt: '2026-11-26',
+  citationSummary:
+    '依據職安署《風險評估指引》之可能性 (1-5) × 嚴重度 (1-5) 計算原則，於 PoC 系統採用 1-5 低風險、6-14 中風險、15-25 高風險（不可接受）明確規則。',
+};
 
 export const DAY3_AGENT_TOOLS: OpenAIResponsesToolDefinition[] = [
   {
@@ -84,6 +100,80 @@ export const DAY3_AGENT_TOOLS: OpenAIResponsesToolDefinition[] = [
       required: ['query'],
     },
   },
+  {
+    type: 'function',
+    name: 'calculate_risk',
+    description:
+      '依明確 5×5 風險矩陣規則（可能性 1-5 × 嚴重度 1-5）計算改善前與剩餘風險等級。僅能在使用者已明確確認現場條件與 P/S 等級時呼叫（userConfirmedConditions 必須為 true）；若使用者尚未確認，不得自行猜測分數。',
+    parameters: {
+      type: 'object',
+      properties: {
+        hazardName: {
+          type: 'string',
+          description: '危害項目名稱，例如：屋頂高處墜落',
+        },
+        probability: {
+          type: 'integer',
+          description: '使用者確認之改善前發生可能性（1 至 5 整數）',
+        },
+        severity: {
+          type: 'integer',
+          description: '使用者確認之改善前後果嚴重度（1 至 5 整數）',
+        },
+        residualProbability: {
+          type: 'integer',
+          description: '（選填）採行控制措施後確認之剩餘可能性（1 至 5 整數）',
+        },
+        residualSeverity: {
+          type: 'integer',
+          description: '（選填）採行控制措施後確認之剩餘嚴重度（1 至 5 整數）',
+        },
+        userConfirmedConditions: {
+          type: 'boolean',
+          description: '使用者是否已明確確認現場作業條件與對應 P/S 數值（未確認不得為 true）',
+        },
+      },
+      required: ['hazardName', 'probability', 'severity', 'userConfirmedConditions'],
+    },
+  },
+  {
+    type: 'function',
+    name: 'generate_report',
+    description:
+      '產出結構化 Markdown 初步危害辨識與風險評估報告，自動附加研究概念驗證（PoC）免責聲明與表格格式。',
+    parameters: {
+      type: 'object',
+      properties: {
+        scenarioTitle: { type: 'string', description: '作業情境標題' },
+        scenarioSummary: { type: 'string', description: '作業情境摘要' },
+        hazards: {
+          type: 'array',
+          description: '已辨識危害清單',
+          items: {
+            type: 'object',
+            properties: {
+              hazardType: { type: 'string' },
+              description: { type: 'string' },
+              potentialConsequence: { type: 'string' },
+              recommendedControls: { type: 'array', items: { type: 'string' } },
+              relatedRegulations: { type: 'array', items: { type: 'string' } },
+            },
+          },
+        },
+        recommendedActions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '建議優先執行控制措施',
+        },
+        clarificationQuestions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '待確認現場條件問題',
+        },
+      },
+      required: ['scenarioTitle', 'scenarioSummary', 'hazards'],
+    },
+  },
 ];
 
 export interface ToolExecutionResult {
@@ -120,6 +210,10 @@ function parseArguments(rawArgs: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+export function formatToolInputSummary(rawArgs: string): string {
+  return formatInputSummary(parseArguments(rawArgs));
 }
 
 export function executeSafetyTool(
@@ -235,6 +329,126 @@ export function executeSafetyTool(
             ? `比對到 ${result.total} 類危害控制階層項目${broadened ? '（已自動放寬分類篩選）' : ''}`
             : '未比對到特定危害目錄項目',
         referenceSources: sources,
+      },
+    };
+  }
+
+  if (toolName === 'calculate_risk') {
+    const hazardName = typeof args.hazardName === 'string' ? args.hazardName.trim() : '未命名危害項目';
+    const userConfirmed = args.userConfirmedConditions === true;
+    const p = args.probability;
+    const s = args.severity;
+
+    if (!userConfirmed) {
+      return {
+        outputJson: JSON.stringify({
+          status: 'NEEDS_USER_CONFIRMATION',
+          message:
+            '現場條件或 P/S 等級尚未經使用者確認，依規範不得自動計算風險分數。請先向使用者確認現場條件，或引導至「5×5 風險矩陣」頁面由人工確認後計算。',
+        }),
+        sources: [RISK_GUIDELINE_SOURCE],
+        traceItem: {
+          id: callId,
+          toolName: 'calculate_risk',
+          executionStatus: 'completed',
+          executionDurationMs: Math.max(1, Date.now() - startedAt),
+          inputSummary,
+          outputSummary: '因現場條件未經使用者確認，未產出未確認分數（已攔截）',
+          referenceSources: [RISK_GUIDELINE_SOURCE],
+        },
+      };
+    }
+
+    if (!isValidRiskScale(p) || !isValidRiskScale(s)) {
+      return {
+        outputJson: JSON.stringify({
+          status: 'INVALID_SCALE',
+          message: 'probability 與 severity 必須為 1 至 5 的整數。',
+        }),
+        sources: [RISK_GUIDELINE_SOURCE],
+        traceItem: {
+          id: callId,
+          toolName: 'calculate_risk',
+          executionStatus: 'failed',
+          executionDurationMs: Math.max(1, Date.now() - startedAt),
+          inputSummary,
+          outputSummary: 'P/S 參數不在 1-5 整數範圍內',
+          referenceSources: [RISK_GUIDELINE_SOURCE],
+        },
+      };
+    }
+
+    const initialRisk = calculateRiskGrade(p, s);
+    const residualRisk =
+      isValidRiskScale(args.residualProbability) && isValidRiskScale(args.residualSeverity)
+        ? calculateRiskGrade(args.residualProbability, args.residualSeverity)
+        : null;
+
+    return {
+      outputJson: JSON.stringify({
+        status: 'CALCULATED',
+        hazardName,
+        initialRisk,
+        residualRisk,
+        guideline: RISK_GUIDELINE_SOURCE,
+      }),
+      sources: [RISK_GUIDELINE_SOURCE],
+      traceItem: {
+        id: callId,
+        toolName: 'calculate_risk',
+        executionStatus: 'completed',
+        executionDurationMs: Math.max(1, Date.now() - startedAt),
+        inputSummary,
+        outputSummary: `${hazardName}：改善前 ${initialRisk.score} 分（${initialRisk.gradeLabel}）${
+          residualRisk ? `，剩餘 ${residualRisk.score} 分（${residualRisk.gradeLabel}）` : ''
+        }`,
+        referenceSources: [RISK_GUIDELINE_SOURCE],
+      },
+    };
+  }
+
+  if (toolName === 'generate_report') {
+    const scenarioTitle =
+      typeof args.scenarioTitle === 'string' && args.scenarioTitle.trim()
+        ? args.scenarioTitle.trim()
+        : '作業安全初步評估';
+    const scenarioSummary =
+      typeof args.scenarioSummary === 'string' ? args.scenarioSummary.trim() : '';
+    const hazards = Array.isArray(args.hazards)
+      ? (args.hazards as Array<{
+          hazardType: string;
+          description: string;
+          potentialConsequence: string;
+          recommendedControls: string[];
+          relatedRegulations: string[];
+        }>)
+      : [];
+    const recommendedActions = Array.isArray(args.recommendedActions)
+      ? args.recommendedActions.filter((item): item is string => typeof item === 'string')
+      : [];
+    const clarificationQuestions = Array.isArray(args.clarificationQuestions)
+      ? args.clarificationQuestions.filter((item): item is string => typeof item === 'string')
+      : [];
+
+    const report = formatPreliminaryReportMarkdown({
+      scenarioTitle,
+      scenarioSummary,
+      hazards,
+      recommendedActions,
+      clarificationQuestions,
+    });
+
+    return {
+      outputJson: JSON.stringify(report),
+      sources: [RISK_GUIDELINE_SOURCE],
+      traceItem: {
+        id: callId,
+        toolName: 'generate_report',
+        executionStatus: 'completed',
+        executionDurationMs: Math.max(1, Date.now() - startedAt),
+        inputSummary: `scenarioTitle=${scenarioTitle}, hazards=${hazards.length}`,
+        outputSummary: `已產出結構化 Markdown 初步報告（含 PoC 免責聲明）`,
+        referenceSources: [RISK_GUIDELINE_SOURCE],
       },
     };
   }

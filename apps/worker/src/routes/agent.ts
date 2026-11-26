@@ -1,11 +1,17 @@
-import { Hono } from 'hono';
-import type { AgentChatRequest, ApiErrorResponse } from '@safeagent/shared';
+import { Hono, type Context } from 'hono';
+import type { AgentChatRequest, ApiErrorResponse, SseErrorData } from '@safeagent/shared';
 import { AgentServiceError, runSingleAgentTurn } from '../agent/responses-client';
+import { createSseHeaders, formatSseEvent } from '../services/sse';
 import type { WorkerEnv } from '../types/env';
 
 export const agentRoutes = new Hono<WorkerEnv>();
 
-agentRoutes.post('/agent/chat', async (c) => {
+async function validateAndAuthorizeAgentRequest(
+  c: Context<WorkerEnv>,
+): Promise<
+  | { ok: true; message: string; conversationId: string | null; apiKey: string }
+  | { ok: false; response: Response }
+> {
   const requestId = c.get('requestId');
 
   let body: Partial<AgentChatRequest>;
@@ -19,7 +25,7 @@ agentRoutes.post('/agent/chat', async (c) => {
       },
       requestId,
     };
-    return c.json(errorPayload, 400);
+    return { ok: false, response: c.json(errorPayload, 400) };
   }
 
   if (typeof body.message !== 'string' || body.message.trim().length === 0) {
@@ -30,7 +36,7 @@ agentRoutes.post('/agent/chat', async (c) => {
       },
       requestId,
     };
-    return c.json(errorPayload, 400);
+    return { ok: false, response: c.json(errorPayload, 400) };
   }
 
   if (
@@ -45,7 +51,7 @@ agentRoutes.post('/agent/chat', async (c) => {
       },
       requestId,
     };
-    return c.json(errorPayload, 400);
+    return { ok: false, response: c.json(errorPayload, 400) };
   }
 
   if (c.env?.AGENT_ENABLED !== 'true') {
@@ -56,7 +62,7 @@ agentRoutes.post('/agent/chat', async (c) => {
       },
       requestId,
     };
-    return c.json(disabledPayload, 503);
+    return { ok: false, response: c.json(disabledPayload, 503) };
   }
 
   const apiKey = c.env?.OPENAI_API_KEY?.trim();
@@ -68,15 +74,30 @@ agentRoutes.post('/agent/chat', async (c) => {
       },
       requestId,
     };
-    return c.json(missingKeyPayload, 503);
+    return { ok: false, response: c.json(missingKeyPayload, 503) };
+  }
+
+  return {
+    ok: true,
+    message: body.message.trim(),
+    conversationId: body.conversationId ?? null,
+    apiKey,
+  };
+}
+
+agentRoutes.post('/agent/chat', async (c) => {
+  const requestId = c.get('requestId');
+  const validated = await validateAndAuthorizeAgentRequest(c);
+  if (!validated.ok) {
+    return validated.response;
   }
 
   try {
     const result = await runSingleAgentTurn({
-      apiKey,
+      apiKey: validated.apiKey,
       model: c.env?.OPENAI_MODEL,
-      message: body.message.trim(),
-      conversationId: body.conversationId ?? null,
+      message: validated.message,
+      conversationId: validated.conversationId,
     });
     return c.json(result, 200);
   } catch (err) {
@@ -101,4 +122,55 @@ agentRoutes.post('/agent/chat', async (c) => {
     };
     return c.json(fallbackPayload, 500);
   }
+});
+
+agentRoutes.post('/agent/chat/stream', async (c) => {
+  const requestId = c.get('requestId');
+  const validated = await validateAndAuthorizeAgentRequest(c);
+  if (!validated.ok) {
+    return validated.response;
+  }
+
+  const encoder = new TextEncoder();
+  const model = c.env?.OPENAI_MODEL;
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const sendEvent = (event: Parameters<typeof formatSseEvent>[0], data: unknown) => {
+        controller.enqueue(encoder.encode(formatSseEvent(event, data)));
+      };
+
+      try {
+        await runSingleAgentTurn({
+          apiKey: validated.apiKey,
+          model,
+          message: validated.message,
+          conversationId: validated.conversationId,
+          onEvent: (event, data) => {
+            sendEvent(event, data);
+          },
+        });
+      } catch (err) {
+        const errorData: SseErrorData =
+          err instanceof AgentServiceError
+            ? { code: err.code, message: err.message, requestId }
+            : {
+                code: 'AGENT_EXECUTION_FAILED',
+                message: '執行 AI Agent 串流分析時發生未預期的錯誤',
+                requestId,
+              };
+        sendEvent('error', errorData);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      ...createSseHeaders(),
+      'X-Request-Id': requestId,
+    },
+  });
 });

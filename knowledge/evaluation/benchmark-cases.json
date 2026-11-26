@@ -1,0 +1,77 @@
+[
+  {
+    "id": "eval-case-1-exhaust-fan",
+    "title": "廠區頂樓排氣風車維修作業",
+    "prompt": "預計於廠區頂樓進行空氣污染防制設備排氣風車軸承與皮帶更換作業，作業高度鄰近屋頂女兒牆，現場風速較高且設備需斷電隔離。",
+    "expectedHazardKeywords": ["墜落", "感電", "被夾"],
+    "expectedRegulationHints": ["職業安全衛生法", "職業安全衛生設施規則"],
+    "expectedClarificationHints": ["高度", "上鎖", "風速"],
+    "riskRuleCheck": {
+      "hazardName": "頂樓排氣風車維修高處墜落",
+      "probability": 4,
+      "severity": 5,
+      "expectedScore": 20,
+      "expectedLevel": "high"
+    }
+  },
+  {
+    "id": "eval-case-2-scaffold-height",
+    "title": "4.5 公尺固定式施工架焊接前準備作業",
+    "prompt": "作業人員需於距離地面約 4.5 公尺之固定式施工架上進行管線支架固定與焊接前準備作業，作業期間需攜帶手工具。",
+    "expectedHazardKeywords": ["墜落", "物體", "感電"],
+    "expectedRegulationHints": ["職業安全衛生設施規則", "高架作業勞工保護措施標準"],
+    "expectedClarificationHints": ["安全帶", "護欄", "電焊"],
+    "riskRuleCheck": {
+      "hazardName": "施工架高處作業墜落",
+      "probability": 3,
+      "severity": 4,
+      "expectedScore": 12,
+      "expectedLevel": "medium"
+    }
+  },
+  {
+    "id": "eval-case-3-conveyor-maintenance",
+    "title": "產線輸送帶滾筒清潔與齒輪潤滑保養",
+    "prompt": "進行產線輸送帶滾筒清潔與傳動齒輪組潤滑保養作業，人員手部需接近傳動機構內部進行檢查。",
+    "expectedHazardKeywords": ["被夾", "被捲", "捲入"],
+    "expectedRegulationHints": ["職業安全衛生設施規則", "第57條"],
+    "expectedClarificationHints": ["停機", "上鎖", "護罩"],
+    "riskRuleCheck": {
+      "hazardName": "輸送帶尾輪捲夾危害",
+      "probability": 4,
+      "severity": 4,
+      "expectedScore": 16,
+      "expectedLevel": "high"
+    }
+  },
+  {
+    "id": "eval-case-4-electrical-panel",
+    "title": "廠房低壓配電盤紅外線測溫與端子緊固",
+    "prompt": "預計對廠房低壓配電盤進行紅外線測溫巡檢與接線端子緊固作業，部分鄰近匯流排可能處於帶電狀態。",
+    "expectedHazardKeywords": ["感電", "電擊"],
+    "expectedRegulationHints": ["職業安全衛生法", "職業安全衛生設施規則"],
+    "expectedClarificationHints": ["斷電", "絕緣", "電壓"],
+    "riskRuleCheck": {
+      "hazardName": "低壓配電盤感電危害",
+      "probability": 3,
+      "severity": 5,
+      "expectedScore": 15,
+      "expectedLevel": "high"
+    }
+  },
+  {
+    "id": "eval-case-5-chemical-piping",
+    "title": "酸性清洗劑輸送管線法蘭墊片拆換",
+    "prompt": "預計拆換酸性清洗劑輸送管線法蘭墊片，管線連接儲槽與製程端，作業前需確認管內殘餘液體排空與個人防護具配置。",
+    "expectedHazardKeywords": ["有害物", "化學", "灼傷"],
+    "expectedRegulationHints": ["危害性化學品標示及通識規則", "職業安全衛生法"],
+    "expectedClarificationHints": ["SDS", "盲封", "防護"],
+    "riskRuleCheck": {
+      "hazardName": "酸性化學品管線噴濺接觸",
+      "probability": 2,
+      "severity": 4,
+      "expectedScore": 8,
+      "expectedLevel": "medium"
+    }
+  }
+]

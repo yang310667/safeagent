@@ -1,10 +1,21 @@
 import type {
   AgentChatResponse,
   AgentStructuredAnalysis,
+  AgentToolName,
   AgentToolTraceItem,
   ReferenceSourceItem,
+  SseAgentStatusData,
+  SseEventType,
+  SseMessageCompletedData,
+  SseMessageDeltaData,
+  SseToolCompletedData,
+  SseToolStartedData,
 } from '@safeagent/shared';
-import { DAY3_AGENT_TOOLS, executeSafetyTool } from '../tools/safety-tools';
+import {
+  DAY3_AGENT_TOOLS,
+  executeSafetyTool,
+  formatToolInputSummary,
+} from '../tools/safety-tools';
 import { SAFEAGENT_OUTPUT_JSON_SCHEMA, SAFEAGENT_SYSTEM_INSTRUCTIONS } from './prompts';
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
@@ -54,12 +65,15 @@ export class AgentServiceError extends Error {
   }
 }
 
+export type AgentEventEmitter = (event: SseEventType, data: unknown) => void | Promise<void>;
+
 export interface RunAgentTurnOptions {
   apiKey: string;
   model?: string;
   message: string;
   conversationId: string | null;
   fetchImpl?: typeof fetch;
+  onEvent?: AgentEventEmitter;
 }
 
 function deduplicateSources(sources: ReferenceSourceItem[]): ReferenceSourceItem[] {
@@ -110,6 +124,10 @@ function parseStructuredOutput(rawText: string): ParsedModelOutput {
         typeof parsed.limitationsNotice === 'string' && parsed.limitationsNotice.trim()
           ? parsed.limitationsNotice
           : '本結果僅為研究概念驗證（PoC）輔助分析，不得視為正式職業安全衛生評估報告或作業安全許可。',
+      preliminaryReportMarkdown:
+        typeof parsed.preliminaryReportMarkdown === 'string'
+          ? parsed.preliminaryReportMarkdown
+          : '',
     };
   } catch {
     throw new AgentServiceError(502, 'OPENAI_INVALID_OUTPUT', '模型回傳格式不符合結構化 JSON 規範');
@@ -167,6 +185,7 @@ export async function runSingleAgentTurn(
 ): Promise<AgentChatResponse> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const resolvedModel = options.model?.trim() || DEFAULT_OPENAI_MODEL;
+  const emit = options.onEvent;
 
   const toolTraces: AgentToolTraceItem[] = [];
   const collectedSources: ReferenceSourceItem[] = [];
@@ -175,6 +194,16 @@ export async function runSingleAgentTurn(
   let nextInput: unknown = options.message;
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+    const statusPayload: SseAgentStatusData = {
+      stage: round === 0 ? 'analyzing' : 'synthesizing',
+      message:
+        round === 0
+          ? '正在解析作業情境並規劃安全知識檢索...'
+          : '正在根據檢索結果整理危害辨識與分析...',
+      round: round + 1,
+    };
+    await emit?.('agent.status', statusPayload);
+
     const requestBody: Record<string, unknown> = {
       model: resolvedModel,
       instructions: SAFEAGENT_SYSTEM_INSTRUCTIONS,
@@ -205,7 +234,7 @@ export async function runSingleAgentTurn(
       const rawText = extractOutputText(response);
       const parsed = parseStructuredOutput(rawText);
 
-      return {
+      const finalResponse: AgentChatResponse = {
         conversationId: response.id,
         reply: parsed.reply,
         model: response.model || resolvedModel,
@@ -215,10 +244,27 @@ export async function runSingleAgentTurn(
           clarificationQuestions: parsed.clarificationQuestions,
           recommendedActions: parsed.recommendedActions,
           limitationsNotice: parsed.limitationsNotice,
+          preliminaryReportMarkdown: parsed.preliminaryReportMarkdown,
         },
         toolTraces,
         referenceSources: deduplicateSources(collectedSources),
       };
+
+      if (emit) {
+        const chunkSize = 48;
+        for (let i = 0; i < finalResponse.reply.length; i += chunkSize) {
+          const deltaPayload: SseMessageDeltaData = {
+            text: finalResponse.reply.slice(i, i + chunkSize),
+          };
+          await emit('message.delta', deltaPayload);
+        }
+        const completedPayload: SseMessageCompletedData = {
+          response: finalResponse,
+        };
+        await emit('message.completed', completedPayload);
+      }
+
+      return finalResponse;
     }
 
     if (round === MAX_TOOL_ROUNDS) {
@@ -229,18 +275,43 @@ export async function runSingleAgentTurn(
       );
     }
 
-    nextInput = functionCalls.map((call, idx) => {
+    const toolStatus: SseAgentStatusData = {
+      stage: 'calling_tools',
+      message: `正在執行 ${functionCalls.length} 項安全知識與風險工具...`,
+      round: round + 1,
+    };
+    await emit?.('agent.status', toolStatus);
+
+    const toolOutputs = [];
+    for (let idx = 0; idx < functionCalls.length; idx++) {
+      const call = functionCalls[idx];
       const callId = call.call_id || call.id || `call_${round}_${idx}`;
-      const result = executeSafetyTool(call.name ?? '', call.arguments ?? '{}', callId);
+      const toolName = (call.name ?? 'search_safety_knowledge') as AgentToolName;
+      const rawArgs = call.arguments ?? '{}';
+
+      const startedPayload: SseToolStartedData = {
+        id: callId,
+        toolName,
+        inputSummary: formatToolInputSummary(rawArgs),
+      };
+      await emit?.('tool.started', startedPayload);
+
+      const result = executeSafetyTool(toolName, rawArgs, callId);
       toolTraces.push(result.traceItem);
       collectedSources.push(...result.sources);
 
-      return {
+      const completedToolPayload: SseToolCompletedData = {
+        trace: result.traceItem,
+      };
+      await emit?.('tool.completed', completedToolPayload);
+
+      toolOutputs.push({
         type: 'function_call_output',
         call_id: callId,
         output: result.outputJson,
-      };
-    });
+      });
+    }
+    nextInput = toolOutputs;
   }
 
   throw new AgentServiceError(

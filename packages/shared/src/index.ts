@@ -31,6 +31,7 @@ export interface AgentStructuredAnalysis {
   clarificationQuestions: string[];
   recommendedActions: string[];
   limitationsNotice: string;
+  preliminaryReportMarkdown?: string;
 }
 
 export interface AgentChatResponse {
@@ -91,6 +92,98 @@ export interface SseEventPayload<T = unknown> {
   event: SseEventType;
   data: T;
   timestamp: string;
+}
+
+export interface SseAgentStatusData {
+  stage: 'analyzing' | 'calling_tools' | 'synthesizing';
+  message: string;
+  round?: number;
+}
+
+export interface SseToolStartedData {
+  id: string;
+  toolName: AgentToolName;
+  inputSummary: string;
+}
+
+export interface SseToolCompletedData {
+  trace: AgentToolTraceItem;
+}
+
+export interface SseMessageDeltaData {
+  text: string;
+}
+
+export interface SseMessageCompletedData {
+  response: AgentChatResponse;
+}
+
+export interface SseErrorData {
+  code: string;
+  message: string;
+  requestId?: string;
+}
+
+export interface EvaluationCriterionMetric {
+  key:
+    | 'hazardCompleteness'
+    | 'regulationAccuracy'
+    | 'sourceTraceability'
+    | 'riskCalculationAccuracy'
+    | 'clarificationCapability'
+    | 'hallucinationControl';
+  title: string;
+  passedCount: number;
+  totalCount: number;
+  passRate: number;
+  summary: string;
+}
+
+export interface EvaluationCaseBenchmark {
+  id: string;
+  title: string;
+  prompt: string;
+  expectedHazardKeywords: string[];
+  expectedRegulationHints: string[];
+  expectedClarificationHints: string[];
+  riskRuleCheck: {
+    hazardName: string;
+    probability: number;
+    severity: number;
+    expectedScore: number;
+    expectedLevel: RiskLevel;
+  };
+}
+
+export interface EvaluationCaseResult {
+  caseId: string;
+  title: string;
+  prompt: string;
+  executedAt: string;
+  model: string;
+  durationMs: number;
+  toolNamesUsed: AgentToolName[];
+  referenceSourceCount: number;
+  replyExcerpt: string;
+  clarificationQuestionsCount: number;
+  checks: {
+    hazardCompleteness: boolean;
+    regulationAccuracy: boolean;
+    sourceTraceability: boolean;
+    riskCalculationAccuracy: boolean;
+    clarificationCapability: boolean;
+    hallucinationControl: boolean;
+  };
+  notes: string[];
+}
+
+export interface EvaluationReportResponse {
+  hasExecutedRun: boolean;
+  executedAt: string | null;
+  model: string | null;
+  benchmarkCases: EvaluationCaseBenchmark[];
+  criteriaMetrics: EvaluationCriterionMetric[];
+  caseResults: EvaluationCaseResult[];
 }
 
 export interface ScenarioPreset {
@@ -204,3 +297,5 @@ export interface HazardCatalogResponse {
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high';
+
+export * from './risk-matrix';

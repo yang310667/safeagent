@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
-import type {
-  AgentStructuredAnalysis,
-  AgentToolName,
-  AgentToolTraceItem,
-  ReferenceSourceItem,
-  ScenarioPreset,
+import { useRouter } from 'vue-router';
+import {
+  formatPreliminaryReportMarkdown,
+  type AgentStructuredAnalysis,
+  type AgentToolName,
+  type AgentToolTraceItem,
+  type ReferenceSourceItem,
+  type ScenarioPreset,
 } from '@safeagent/shared';
 import {
   AlertCircle,
@@ -13,9 +15,11 @@ import {
   Bot,
   CheckCircle2,
   Clock,
+  Download,
   Eraser,
   ExternalLink,
   FileText,
+  Grid2x2,
   HelpCircle,
   Info,
   Loader2,
@@ -26,8 +30,9 @@ import {
   Wrench,
 } from 'lucide-vue-next';
 import StatusBadge from '@/components/StatusBadge.vue';
-import { sendAgentChat } from '@/services/agent.service';
+import { streamAgentChat } from '@/services/agent.service';
 import { ApiClientError } from '@/services/api-client';
+import { useRiskStore } from '@/stores/risk';
 import { useSystemStore } from '@/stores/system';
 
 interface ConversationMessage {
@@ -38,6 +43,8 @@ interface ConversationMessage {
 }
 
 const systemStore = useSystemStore();
+const riskStore = useRiskStore();
+const router = useRouter();
 
 const scenarioPresets: ScenarioPreset[] = [
   {
@@ -82,12 +89,12 @@ const scenarioPresets: ScenarioPreset[] = [
   },
 ];
 
-const reservedTools: Array<{ name: AgentToolName; label: string; enabledInDay3: boolean }> = [
-  { name: 'search_safety_knowledge', label: '職安知識庫檢索', enabledInDay3: true },
-  { name: 'search_accident_cases', label: '職災案例檢索', enabledInDay3: true },
-  { name: 'identify_hazards', label: '危害辨識輔助', enabledInDay3: true },
-  { name: 'calculate_risk', label: '風險等級計算（Day 4）', enabledInDay3: false },
-  { name: 'generate_report', label: '初步報告產出（Day 4）', enabledInDay3: false },
+const reservedTools: Array<{ name: AgentToolName; label: string; enabled: boolean }> = [
+  { name: 'search_safety_knowledge', label: '職安知識庫檢索', enabled: true },
+  { name: 'search_accident_cases', label: '職災案例檢索', enabled: true },
+  { name: 'identify_hazards', label: '危害辨識輔助', enabled: true },
+  { name: 'calculate_risk', label: '5×5 風險矩陣計算', enabled: true },
+  { name: 'generate_report', label: '初步報告產出', enabled: true },
 ];
 
 const selectedScenarioId = ref<string | null>(null);
@@ -101,6 +108,7 @@ const toolTraces = ref<AgentToolTraceItem[]>([]);
 const referenceSources = ref<ReferenceSourceItem[]>([]);
 
 const isAnalyzing = ref(false);
+const statusMessage = ref('正在解析作業情境...');
 const errorMessage = ref<string | null>(null);
 let activeController: AbortController | null = null;
 
@@ -136,6 +144,18 @@ function handleClearConversation() {
   isAnalyzing.value = false;
 }
 
+function mergeUniqueSources(incoming: ReferenceSourceItem[]): void {
+  if (incoming.length === 0) return;
+  const merged = [...referenceSources.value, ...incoming];
+  const seen = new Set<string>();
+  referenceSources.value = merged.filter((src) => {
+    const key = `${src.title}::${src.officialUrl}::${src.updatedAt}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function handleSubmitAnalysis() {
   const trimmed = promptInput.value.trim();
   if (!isAgentEnabled.value || !trimmed || isAnalyzing.value) {
@@ -148,6 +168,7 @@ async function handleSubmitAnalysis() {
 
   errorMessage.value = null;
   isAnalyzing.value = true;
+  statusMessage.value = '正在建立 SSE 即時分析連線...';
 
   messages.value.push({
     id: `user-${Date.now()}`,
@@ -156,36 +177,77 @@ async function handleSubmitAnalysis() {
   });
   promptInput.value = '';
 
+  const assistantMsgId = `assistant-${Date.now()}`;
+  let hasAddedAssistantMsg = false;
+
+  const ensureAssistantMsg = (): ConversationMessage => {
+    if (!hasAddedAssistantMsg) {
+      messages.value.push({
+        id: assistantMsgId,
+        role: 'assistant',
+        content: '',
+      });
+      hasAddedAssistantMsg = true;
+    }
+    return messages.value.find((item) => item.id === assistantMsgId)!;
+  };
+
   try {
-    const response = await sendAgentChat(
+    const response = await streamAgentChat(
       {
         message: trimmed,
         conversationId: conversationId.value,
+      },
+      {
+        onStatus: (data) => {
+          statusMessage.value = data.message;
+        },
+        onToolStarted: (data) => {
+          toolTraces.value = [
+            ...toolTraces.value,
+            {
+              id: data.id,
+              toolName: data.toolName,
+              executionStatus: 'running',
+              executionDurationMs: null,
+              inputSummary: data.inputSummary,
+              outputSummary: '執行中...',
+              referenceSources: [],
+            },
+          ];
+        },
+        onToolCompleted: (data) => {
+          const idx = toolTraces.value.findIndex((item) => item.id === data.trace.id);
+          if (idx >= 0) {
+            const next = [...toolTraces.value];
+            next[idx] = data.trace;
+            toolTraces.value = next;
+          } else {
+            toolTraces.value = [...toolTraces.value, data.trace];
+          }
+          mergeUniqueSources(data.trace.referenceSources);
+        },
+        onMessageDelta: (data) => {
+          const msg = ensureAssistantMsg();
+          msg.content += data.text;
+        },
+        onMessageCompleted: (data) => {
+          const finalRes = data.response;
+          conversationId.value = finalRes.conversationId;
+          const msg = ensureAssistantMsg();
+          msg.content = finalRes.reply;
+          msg.model = finalRes.model;
+          analysis.value = finalRes.analysis;
+          mergeUniqueSources(finalRes.referenceSources);
+        },
       },
       undefined,
       controller.signal,
     );
 
-    conversationId.value = response.conversationId;
-    messages.value.push({
-      id: `assistant-${Date.now()}`,
-      role: 'assistant',
-      content: response.reply,
-      model: response.model,
-    });
-    analysis.value = response.analysis;
-    if (response.toolTraces.length > 0) {
-      toolTraces.value = [...toolTraces.value, ...response.toolTraces];
-    }
-    if (response.referenceSources.length > 0) {
-      const merged = [...referenceSources.value, ...response.referenceSources];
-      const seen = new Set<string>();
-      referenceSources.value = merged.filter((src) => {
-        const key = `${src.title}::${src.officialUrl}::${src.updatedAt}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+    if (response) {
+      conversationId.value = response.conversationId;
+      analysis.value = response.analysis;
     }
   } catch (err) {
     if (err instanceof ApiClientError && err.code === 'REQUEST_ABORTED') {
@@ -196,7 +258,7 @@ async function handleSubmitAnalysis() {
         ? err.requestId
           ? `${err.message}（Request ID: ${err.requestId}）`
           : err.message
-        : '呼叫 AI Agent 失敗，請稍後再試';
+        : '呼叫 AI Agent 串流失敗，請稍後再試';
     errorMessage.value = detail;
     promptInput.value = trimmed;
   } finally {
@@ -205,6 +267,40 @@ async function handleSubmitAnalysis() {
       activeController = null;
     }
   }
+}
+
+function handleSendToRiskMatrix() {
+  if (!analysis.value) return;
+  const activePreset = scenarioPresets.find((item) => item.id === selectedScenarioId.value);
+  riskStore.setWorkspaceDraft({
+    scenarioTitle: activePreset?.title || 'AI 工作台作業情境',
+    scenarioSummary: analysis.value.scenarioSummary,
+    hazards: analysis.value.identifiedHazards,
+  });
+  void router.push('/risk-matrix');
+}
+
+function handleDownloadWorkspaceReport() {
+  if (!analysis.value) return;
+  const activePreset = scenarioPresets.find((item) => item.id === selectedScenarioId.value);
+  const markdown =
+    analysis.value.preliminaryReportMarkdown?.trim() ||
+    formatPreliminaryReportMarkdown({
+      scenarioTitle: activePreset?.title || 'AI 工作台作業情境',
+      scenarioSummary: analysis.value.scenarioSummary,
+      hazards: analysis.value.identifiedHazards,
+      clarificationQuestions: analysis.value.clarificationQuestions,
+      recommendedActions: analysis.value.recommendedActions,
+      riskRecords: riskStore.records,
+    }).markdownContent;
+
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `safeagent-workspace-report-${Date.now()}.md`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 onBeforeUnmount(() => {
@@ -376,7 +472,7 @@ onBeforeUnmount(() => {
           class="bg-white border border-teal-200 rounded-lg p-3.5 flex items-center gap-2.5 text-xs text-[#0F766E]"
         >
           <Loader2 class="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
-          <span>正在透過 OpenAI Responses API 檢索職安知識庫、公開案例並辨識潛在危害...</span>
+          <span>{{ statusMessage }}</span>
         </div>
 
         <div
@@ -495,7 +591,7 @@ onBeforeUnmount(() => {
               <span>危害辨識與初步分析區</span>
             </h3>
             <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-[#64748B] shrink-0 whitespace-nowrap">
-              {{ analysis ? `${analysis.identifiedHazards.length} 類危害` : 'Day 4 加入風險矩陣' }}
+              {{ analysis ? `${analysis.identifiedHazards.length} 類危害` : '等待分析' }}
             </span>
           </div>
 
@@ -532,6 +628,25 @@ onBeforeUnmount(() => {
               </ul>
             </div>
 
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[#0F766E] text-[#0F766E] bg-teal-50/50 hover:bg-teal-50 text-[11px] font-medium cursor-pointer"
+                @click="handleSendToRiskMatrix"
+              >
+                <Grid2x2 class="h-3.5 w-3.5" aria-hidden="true" />
+                <span>帶入 5×5 風險矩陣評估</span>
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#0F766E] text-white hover:bg-[#0D655E] text-[11px] font-medium cursor-pointer"
+                @click="handleDownloadWorkspaceReport"
+              >
+                <Download class="h-3.5 w-3.5" aria-hidden="true" />
+                <span>匯出 Markdown 報告</span>
+              </button>
+            </div>
+
             <p class="text-[11px] text-[#64748B] border-t border-[#E2E8F0] pt-2 leading-relaxed">
               {{ analysis.limitationsNotice }}
             </p>
@@ -539,7 +654,7 @@ onBeforeUnmount(() => {
 
           <template v-else>
             <p class="text-xs text-[#64748B] leading-relaxed">
-              將呈現危害辨識清單、控制措施建議及依據法規（風險分數計算將於 Day 4 整合官方矩陣規則後開放）。
+              將呈現危害辨識清單、控制措施建議及依據法規，完成分析後可帶入 5×5 風險矩陣由人工確認評分並匯出初步報告。
             </p>
             <div class="text-[11px] text-[#94A3B8] border border-dashed border-[#E2E8F0] rounded p-3 text-center">
               尚未產生危害辨識與初步分析結果
@@ -575,16 +690,26 @@ onBeforeUnmount(() => {
           >
             <div class="flex items-center justify-between gap-2">
               <code class="font-mono font-semibold text-[#0F766E]">{{ trace.toolName }}</code>
-              <span class="inline-flex items-center gap-1 text-[#16A34A] font-medium">
-                <CheckCircle2 class="h-3 w-3" aria-hidden="true" />
+              <span
+                class="inline-flex items-center gap-1 font-medium"
+                :class="
+                  trace.executionStatus === 'completed'
+                    ? 'text-[#16A34A]'
+                    : trace.executionStatus === 'running'
+                      ? 'text-[#D97706]'
+                      : 'text-[#DC2626]'
+                "
+              >
+                <Loader2 v-if="trace.executionStatus === 'running'" class="h-3 w-3 animate-spin" aria-hidden="true" />
+                <CheckCircle2 v-else class="h-3 w-3" aria-hidden="true" />
                 <span>{{ trace.executionStatus }}</span>
               </span>
             </div>
             <div class="text-[#475569]">輸入：{{ trace.inputSummary }}</div>
             <div class="text-[#1E293B]">結果：{{ trace.outputSummary }}</div>
-            <div class="flex items-center gap-1 text-[#64748B]">
+            <div v-if="trace.executionDurationMs !== null" class="flex items-center gap-1 text-[#64748B]">
               <Clock class="h-3 w-3" aria-hidden="true" />
-              <span>耗時：{{ trace.executionDurationMs ?? 0 }} ms</span>
+              <span>耗時：{{ trace.executionDurationMs }} ms</span>
             </div>
           </li>
         </ul>
@@ -602,7 +727,7 @@ onBeforeUnmount(() => {
               :key="tool.name"
               class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded bg-[#F8FAFC] border border-[#E2E8F0]"
             >
-              <code class="font-mono" :class="tool.enabledInDay3 ? 'text-[#0F766E]' : 'text-[#94A3B8]'">
+              <code class="font-mono" :class="tool.enabled ? 'text-[#0F766E]' : 'text-[#94A3B8]'">
                 {{ tool.name }}
               </code>
               <span class="text-[#64748B]">{{ tool.label }}</span>

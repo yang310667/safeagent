@@ -44,8 +44,8 @@ const coreFeatures = [
   {
     title: '風險矩陣評估',
     description: '透過發生可能性與後果嚴重度，協助進行初步風險評估。',
-    status: '規劃中（Day 4 實作）',
-    tone: 'warning' as const,
+    status: '已啟用（Day 4 完成）',
+    tone: 'success' as const,
     icon: Grid2x2,
     to: '/risk-matrix',
   },
@@ -106,7 +106,7 @@ const agentTone = computed<BadgeTone>(() =>
           <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-teal-50 text-[#0F766E] border border-teal-200 text-xs font-medium">
             <span>研究概念驗證（Proof of Concept）</span>
             <span aria-hidden="true">·</span>
-            <span>Day 3 Live Agent 工具呼叫階段</span>
+            <span>Day 6 SSE 串流與基準評估階段</span>
           </div>
 
           <div>

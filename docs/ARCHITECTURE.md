@@ -50,8 +50,10 @@ safeagent/
 - 採用 **Single Agent Architecture** 搭配 **OpenAI Responses API**（`/v1/responses`）與 **Function Calling + Structured Outputs**（`text.format` 嚴格 JSON Schema）。
 - 不使用 LangChain 或 LangGraph，由 Worker 端（`apps/worker/src/agent/responses-client.ts`）直接控制工具執行循環（上限 4 輪，單次 OpenAI 請求逾時 25 秒；前端 `sendAgentChat` 逾時 60 秒）。
 - 多輪對話狀態透過 OpenAI Responses API 原生 `previous_response_id` 串接（由後端回傳 `conversationId` 供前端下一輪附帶，無須伺服器端 Session 儲存）。
-- Day 3 已啟用三個工具：`search_safety_knowledge`、`search_accident_cases`、`identify_hazards`；`calculate_risk` 與 `generate_report` 預留於 Day 4 整合風險矩陣後啟用。
-- 工具執行摘要與官方引用來源透過 `/api/agent/chat` 回傳並呈現於 Workspace 右側面板；Day 5 將進一步透過 `apps/worker/src/services/sse.ts` 升級為 SSE 即時串流。
+- Day 4 已啟用全部五個工具：`search_safety_knowledge`、`search_accident_cases`、`identify_hazards`、`calculate_risk`（需 `userConfirmedConditions=true`）、`generate_report`。
+- 5×5 風險矩陣確定性規則統一維護於 `packages/shared/src/risk-matrix.ts`（1–5 低風險、6–14 中風險、15–25 高風險不可接受），供後端 API（`POST /api/risk/calculate`、`POST /api/risk/report`）與前端 `RiskMatrixView.vue` + Apache ECharts 視覺化共用。
+- 工具執行狀態透過 `POST /api/agent/chat/stream` 搭配 `apps/worker/src/services/sse.ts` 即時串流（`agent.status`、`tool.started`、`tool.completed`、`message.delta`、`message.completed`、`error`）回傳前端 `WorkspaceView.vue`，即時更新工具執行耗時與官方引用來源（不公開模型內部推理過程）。
+- Day 6 基準測試與評估框架位於 `knowledge/evaluation/benchmark-cases.json` 與 `apps/worker/src/services/evaluation.service.ts`（`GET /api/evaluation`、`POST /api/evaluation/run`）。
 
 ## 6. Secret 管理方式
 
@@ -59,8 +61,8 @@ safeagent/
 - 正式環境：透過 `wrangler secret put OPENAI_API_KEY` 儲存於 Cloudflare Workers Secret，不寫入 `wrangler.jsonc`。
 - 前端環境變數（`VITE_*`）僅放置公開網址與版本號，嚴禁放置任何 API Key 或敏感憑證。
 
-## 7. 已知技術限制（Day 3）
+## 7. 已知技術限制（Day 6）
 
-- 5×5 風險矩陣計算規則與 SSE 即時串流尚未實作（預定於 Day 4、Day 5 陸續完成）。
+- 尚未完成 Cloudflare Workers 正式環境線上部署（預定於 Day 7 與使用者確認後執行）。
 - `rateLimitMiddleware` 目前為 pass-through 預留介面，尚未綁定 Cloudflare Rate Limiting 規則，尚不具備真實限流防護。
 - 前端僅針對桌面版視窗（1280×800 以上）設計，未包含手機或平板版面適配。

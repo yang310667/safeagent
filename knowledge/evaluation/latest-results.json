@@ -1,0 +1,139 @@
+{
+  "executedAt": "2026-11-26T02:11:52.216Z",
+  "model": "gpt-4.1-mini-2025-04-14",
+  "caseResults": [
+    {
+      "caseId": "eval-case-1-exhaust-fan",
+      "title": "廠區頂樓排氣風車維修作業",
+      "prompt": "預計於廠區頂樓進行空氣污染防制設備排氣風車軸承與皮帶更換作業，作業高度鄰近屋頂女兒牆，現場風速較高且設備需斷電隔離。",
+      "executedAt": "2026-11-26T02:10:51.360Z",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "durationMs": 17090,
+      "toolNamesUsed": [
+        "search_safety_knowledge",
+        "search_accident_cases",
+        "identify_hazards"
+      ],
+      "referenceSourceCount": 8,
+      "replyExcerpt": "根據查詢結果與您描述的作業情境，廠區頂樓進行空氣污染防制設備排氣風車軸承及皮帶更換，涉及主要以下三項職業安全衛生風險：\n\n1. 【被夾、被捲風險】因風車軸承及皮帶為機械傳動部分，維修作業時如果未落實斷電停機並執行上鎖掛牌（LOTO），將有衣物或肢體被轉軸、皮帶輪捲入的危險，可能導致嚴重傷害甚至肢體斷離。\n\n2. 【高處墜落風險】廠區頂樓鄰近屋頂女兒牆且現場風",
+      "clarificationQuestionsCount": 6,
+      "checks": {
+        "hazardCompleteness": true,
+        "regulationAccuracy": true,
+        "sourceTraceability": true,
+        "riskCalculationAccuracy": true,
+        "clarificationCapability": true,
+        "hallucinationControl": true
+      },
+      "notes": [
+        "六項評估指標皆通過實測檢核"
+      ]
+    },
+    {
+      "caseId": "eval-case-2-scaffold-height",
+      "title": "4.5 公尺固定式施工架焊接前準備作業",
+      "prompt": "作業人員需於距離地面約 4.5 公尺之固定式施工架上進行管線支架固定與焊接前準備作業，作業期間需攜帶手工具。",
+      "executedAt": "2026-11-26T02:11:04.294Z",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "durationMs": 12928,
+      "toolNamesUsed": [
+        "search_safety_knowledge",
+        "search_accident_cases"
+      ],
+      "referenceSourceCount": 4,
+      "replyExcerpt": "根據目前提供的資訊，勞工需於距離地面約 4.5 公尺之固定式施工架上進行管線支架固定與焊接前準備作業，屬於高處作業，且高度超過職業安全衛生設施規則及高架作業勞工保護措施標準所規範的 2 公尺標準，屬於有墜落危險的作業。依照職業安全衛生設施規則第224條及第281條規定，工作場所邊緣及開口應設有護欄或護蓋，或勞工須使用符合國家標準的安全帶、安全帽等防墜防護具。",
+      "clarificationQuestionsCount": 5,
+      "checks": {
+        "hazardCompleteness": true,
+        "regulationAccuracy": true,
+        "sourceTraceability": true,
+        "riskCalculationAccuracy": true,
+        "clarificationCapability": true,
+        "hallucinationControl": true
+      },
+      "notes": [
+        "六項評估指標皆通過實測檢核"
+      ]
+    },
+    {
+      "caseId": "eval-case-3-conveyor-maintenance",
+      "title": "產線輸送帶滾筒清潔與齒輪潤滑保養",
+      "prompt": "進行產線輸送帶滾筒清潔與傳動齒輪組潤滑保養作業，人員手部需接近傳動機構內部進行檢查。",
+      "executedAt": "2026-11-26T02:11:20.576Z",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "durationMs": 16280,
+      "toolNamesUsed": [
+        "identify_hazards",
+        "search_safety_knowledge",
+        "search_accident_cases"
+      ],
+      "referenceSourceCount": 3,
+      "replyExcerpt": "您所描述的產線輸送帶滾筒清潔與傳動齒輪組潤滑保養作業，因手部需接近傳動機構內部進行檢查，存在高風險的被夾及被捲危害。這類危害通常在機械設備掃除、潤滑或檢修時容易發生，若機械未停止運轉且缺乏必要護罩防護，可能導致嚴重的肢體損傷甚至肢體斷離。\\n\\n根據職業安全衛生設施規則第57條與第58條，進行類似作業時必須事前訂定危害防止計畫，且應停機上鎖掛牌（LOTO），",
+      "clarificationQuestionsCount": 4,
+      "checks": {
+        "hazardCompleteness": true,
+        "regulationAccuracy": true,
+        "sourceTraceability": true,
+        "riskCalculationAccuracy": true,
+        "clarificationCapability": true,
+        "hallucinationControl": true
+      },
+      "notes": [
+        "六項評估指標皆通過實測檢核"
+      ]
+    },
+    {
+      "caseId": "eval-case-4-electrical-panel",
+      "title": "廠房低壓配電盤紅外線測溫與端子緊固",
+      "prompt": "預計對廠房低壓配電盤進行紅外線測溫巡檢與接線端子緊固作業，部分鄰近匯流排可能處於帶電狀態。",
+      "executedAt": "2026-11-26T02:11:34.091Z",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "durationMs": 13514,
+      "toolNamesUsed": [
+        "identify_hazards",
+        "search_accident_cases"
+      ],
+      "referenceSourceCount": 3,
+      "replyExcerpt": "您所描述的廠房低壓配電盤進行紅外線測溫及接線端子緊固的作業，因部分鄰近匯流排可能帶電，存在較高的電氣安全風險。查詢發現近似的電氣安全相關危害未有直接條文匹配，但從相關職災案例中可以推斷主要風險為感電及因未斷電操作導致的電擊傷害。根據勞動部職業安全衛生署公開的製造業及設備維護作業感電災害案例，常見原因包含未切斷電源、未實施適當接地與漏電斷路器、防護設備不足、及",
+      "clarificationQuestionsCount": 5,
+      "checks": {
+        "hazardCompleteness": true,
+        "regulationAccuracy": true,
+        "sourceTraceability": true,
+        "riskCalculationAccuracy": true,
+        "clarificationCapability": true,
+        "hallucinationControl": true
+      },
+      "notes": [
+        "六項評估指標皆通過實測檢核"
+      ]
+    },
+    {
+      "caseId": "eval-case-5-chemical-piping",
+      "title": "酸性清洗劑輸送管線法蘭墊片拆換",
+      "prompt": "預計拆換酸性清洗劑輸送管線法蘭墊片，管線連接儲槽與製程端，作業前需確認管內殘餘液體排空與個人防護具配置。",
+      "executedAt": "2026-11-26T02:11:52.215Z",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "durationMs": 18123,
+      "toolNamesUsed": [
+        "search_safety_knowledge",
+        "search_accident_cases",
+        "identify_hazards"
+      ],
+      "referenceSourceCount": 4,
+      "replyExcerpt": "您預計拆換的是連接儲槽與製程端的酸性清洗劑輸送管線法蘭墊片，此類作業主要風險包括：\n\n1. 有害化學品接觸風險：酸性清洗劑殘留管線內可能對人體造成 burns 或中毒風險，須確認管內殘餘液體已完全排空。\n2. 化學品蒸氣吸入風險：作業過程中可能有酸性氣體揮發，需要適當通風或使用合適呼吸防護具。\n3. 個人防護裝備缺失風險：必須配戴適當的防護手套、防酸服、防護",
+      "clarificationQuestionsCount": 6,
+      "checks": {
+        "hazardCompleteness": true,
+        "regulationAccuracy": true,
+        "sourceTraceability": true,
+        "riskCalculationAccuracy": true,
+        "clarificationCapability": true,
+        "hallucinationControl": true
+      },
+      "notes": [
+        "六項評估指標皆通過實測檢核"
+      ]
+    }
+  ]
+}

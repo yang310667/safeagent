@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@safeagent/shared": "*",
+    "echarts": "^6.1.0",
     "lucide-vue-next": "^0.475.0",
     "pinia": "^2.3.1",
     "vue": "^3.5.13",
