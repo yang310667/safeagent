@@ -1,19 +1,25 @@
-# SafeAgent 待查證官方資料來源清單（Data Sources）
+# SafeAgent 官方資料來源清單（Data Sources）
 
-為確保 SafeAgent 未來知識檢索與法規引用之正確性與可追溯性，所有知識庫條目與職災案例均須來自下列官方公開來源，並於 Day 2 查證後逐筆記錄資料標題、發布機關、官方來源網址與更新日期：
+為確保 SafeAgent 知識檢索與法規引用之正確性與可追溯性，所有知識庫條目與公開職災案例均來自下列官方公開來源，並已於 **Day 2（2026-11-26）** 完成查證建檔。
 
-## 1. 預計查證之官方機關與平臺
+## 1. 已查證建檔之官方資料來源
 
-| 序號 | 機關 / 平臺名稱 | 預計收錄資料類型 | 狀態 |
-| --- | --- | --- | --- |
-| 1 | **勞動部職業安全衛生署** | 職業安全衛生政策指引、作業安全技術手冊、風險評估實務指引、公開職災案例宣導資料 | 待 Day 2 查證建檔 |
-| 2 | **勞動部勞動法令查詢系統** | 職業安全衛生法、職業安全衛生法施行細則、職業安全衛生設施規則、高架作業勞工保護措施標準等現行條文 | 待 Day 2 查證建檔 |
-| 3 | **全國法規資料庫** | 相關母法、子法與最新修正沿革之官方標準法條網址 | 待 Day 2 查證建檔 |
-| 4 | **政府資料開放平臺（data.gov.tw）** | 職業災害統計與公開安全衛生開放資料集 | 待 Day 2 查證建檔 |
-| 5 | **財團法人職業災害預防及重建中心** | 職災預防宣導資料、高風險作業安全實務手冊 | 待 Day 2 查證建檔 |
+| 序號 | 資料名稱／法規代碼 | 發布機關 / 平臺 | 官方網址 | 修正／查證日期 | 收錄位置 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **職業安全衛生法**（`N0060001`） | 勞動部／全國法規資料庫 | https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0060001 | 2025-12-19 | `knowledge/regulations/regulations.json` |
+| 2 | **職業安全衛生設施規則**（`N0060013`） | 勞動部／全國法規資料庫 | https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0060013 | 2026-06-30 | `knowledge/regulations/regulations.json` |
+| 3 | **高架作業勞工保護措施標準**（`N0060029`） | 勞動部／全國法規資料庫 | https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0060029 | 2014-06-25 | `knowledge/regulations/regulations.json` |
+| 4 | **職業安全衛生管理辦法**（`N0060027`） | 勞動部／全國法規資料庫 | https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=N0060027 | 2026-06-29 | `knowledge/regulations/regulations.json` |
+| 5 | **危害性化學品標示及通識規則**（`N0060054`） | 勞動部／全國法規資料庫 | https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0060054 | 2026-08-26 | `knowledge/regulations/regulations.json` |
+| 6 | **風險評估指引／營造工程風險評估技術指引／局限空間及防墜感電宣導資料** | 勞動部職業安全衛生署 | https://www.osha.gov.tw/ | 2026-11-26（查證） | `knowledge/guidelines/guidelines.json`、`knowledge/hazards/hazards.json` |
+| 7 | **職災案例宣導公開重大職災案例（6 筆代表性案件）** | 勞動部職業安全衛生署 | https://www.osha.gov.tw/ | 2026-11-26（查證） | `knowledge/accident-cases/cases.json` |
 
-## 2. 資料收錄原則
+## 2. 預留後續擴充官方平臺
 
-- **Day 1 不預填未經查證內容**：所有界面中的知識庫與職災案例皆維持 Empty State。
-- **來源可追溯（Traceable Citations）**：每筆資料必須保存原始發布 URL 與查證更新日期。
-- **禁止虛構案例**：不得自行編造或改寫假冒為真實職災事件之案例。
+- **政府資料開放平臺（data.gov.tw）**：後續可視需求補充年度職災統計數據集。
+- **財團法人職業災害預防及重建中心（coapre.org.tw）**：後續可補充實務手冊參考指引。
+
+## 3. 資料收錄原則
+
+- **來源可追溯（Traceable Citations）**：每筆資料皆保存原始發布機關、官方 URL 與修正／查證更新日期。
+- **禁止虛構案例與法條**：所有收錄之法條與職災案例僅呈現查證之官方公開內容，不自行編造未公開之事件時間、個資或條文內容。

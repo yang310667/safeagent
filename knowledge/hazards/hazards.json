@@ -1,0 +1,193 @@
+[
+  {
+    "id": "haz-fall",
+    "hazardType": "墜落、滾落",
+    "category": "高處作業",
+    "description": "勞工於高度 2 公尺以上之屋頂、施工架、工作平台邊緣、開口或使用合梯／移動梯作業時，因防護設備不足或踏穿脆弱材質而自高處墜落。",
+    "typicalScenarios": [
+      "廠區頂樓排氣風車維修與吊運作業",
+      "浪板屋頂及採光罩周邊修繕",
+      "無護欄樓板邊緣或開口檢修"
+    ],
+    "potentialConsequences": [
+      "頭部外傷與顱內出血",
+      "多處骨折或創傷性休克致死"
+    ],
+    "controlHierarchy": {
+      "eliminationOrSubstitution": ["儘量於地面完成預組裝或將點檢點移設至可安全到達之平台位置"],
+      "engineeringControls": ["設置適當強度之護欄與護蓋", "鋪設防踏穿安全踏板", "於屋架下方張掛安全網或堅固格柵", "架設專用安全母索"],
+      "administrativeControls": ["指派屋頂／高架作業主管現場指揮監督", "落實每連續作業 2 小時給予規定休息時間", "遇強風大雨停止露天高處作業"],
+      "ppe": ["全身背負式安全帶（確實勾掛獨立錨錠點）", "安全帽（繫妥下顎帶）", "防滑工作鞋"]
+    },
+    "relatedLawRefs": [
+      "職業安全衛生法第6條、第19條",
+      "職業安全衛生設施規則第224條、第281條",
+      "高架作業勞工保護措施標準第3條、第4條、第8條"
+    ],
+    "source": {
+      "title": "勞動部職業安全衛生署－墜落災害預防與設施規則要點",
+      "publisher": "勞動部職業安全衛生署",
+      "officialUrl": "https://www.osha.gov.tw/",
+      "updatedAt": "2026-11-26",
+      "citationSummary": "依據職安署墜落防災資料及職業安全衛生設施規則整理。"
+    }
+  },
+  {
+    "id": "haz-electrocution",
+    "hazardType": "感電",
+    "category": "電氣安全",
+    "description": "勞工於電氣設備檢修、拆除、電焊或接近帶電線路作業時，因未斷電、設備未接地、絕緣破損或未裝設漏電斷路器，導致電流通過人體。",
+    "typicalScenarios": [
+      "排氣風車或加壓馬達動力電源檢修",
+      "配電盤接線及電氣設備故障排除",
+      "未斷電拆除含隱藏電路之構造物或燈具"
+    ],
+    "potentialConsequences": [
+      "心室纖維顫動與電擊性休克死亡",
+      "電弧灼傷或感電後自高處二次墜落"
+    ],
+    "controlHierarchy": {
+      "eliminationOrSubstitution": ["一律採取停電作業，避免活線作業"],
+      "engineeringControls": ["非帶電金屬外殼確實施行接地", "裝設感電防止用漏電斷路器", "交流電焊機裝設自動電擊防止裝置", "使用雙重絕緣電動工具"],
+      "administrativeControls": ["執行斷電、上鎖、掛牌（禁止送電）並以檢電器確認無電", "活線或接近帶電體作業須設專人監視"],
+      "ppe": ["絕緣手套", "絕緣安全鞋", "安全帽與護目鏡（防電弧）"]
+    },
+    "relatedLawRefs": [
+      "職業安全衛生法第6條第1項第3款",
+      "職業安全衛生設施規則電氣安全及漏電斷路器相關條文"
+    ],
+    "source": {
+      "title": "勞動部職業安全衛生署－感電災害預防宣導資料",
+      "publisher": "勞動部職業安全衛生署",
+      "officialUrl": "https://www.osha.gov.tw/",
+      "updatedAt": "2026-11-26",
+      "citationSummary": "依據職安署感電災害案例原因與防災對策整理。"
+    }
+  },
+  {
+    "id": "haz-caught-in",
+    "hazardType": "被夾、被捲",
+    "category": "機械安全",
+    "description": "勞工於機械設備掃除、上油、清料、檢修或異狀排除時，因未停機上鎖或傳動部位欠缺護罩護圍，導致衣物、毛髮或肢體遭轉軸、皮帶輪、葉輪或輸送帶捲夾。",
+    "typicalScenarios": [
+      "頂樓排氣風車皮帶與葉輪維修保養",
+      "輸送帶尾輪或滾輪清理與除料作業",
+      "自動化設備軌道區或加工機具檢修"
+    ],
+    "potentialConsequences": [
+      "肢體斷離、壓碎傷",
+      "胸部壓迫窒息或創傷性休克死亡"
+    ],
+    "controlHierarchy": {
+      "eliminationOrSubstitution": ["設計具連鎖安全門之機構，開門即自動停機"],
+      "engineeringControls": ["於轉軸、齒輪、皮帶、滾輪設置堅固護罩或護圍", "設置明顯且易觸及之緊急停止裝置"],
+      "administrativeControls": ["嚴格執行第57條停機、切斷電源與送料、上鎖並設置標示（LOTO）", "確認轉動慣性完全靜止後方可接觸內部機件", "禁止戴棉紗手套操作旋轉機械"],
+      "ppe": ["合身工作服（避免寬鬆袖口或長髮外露）", "安全鞋", "防護眼鏡"]
+    },
+    "relatedLawRefs": [
+      "職業安全衛生法第6條第1項第1款",
+      "職業安全衛生設施規則第57條、第58條"
+    ],
+    "source": {
+      "title": "勞動部職業安全衛生署－被夾被捲災害預防宣導資料",
+      "publisher": "勞動部職業安全衛生署",
+      "officialUrl": "https://www.osha.gov.tw/",
+      "updatedAt": "2026-11-26",
+      "citationSummary": "依據職安署被夾被捲職災案例對策與設施規則第57、58條整理。"
+    }
+  },
+  {
+    "id": "haz-chemical-exposure",
+    "hazardType": "有害物接觸",
+    "category": "化學品安全",
+    "description": "勞工於化學品灌注、輸送管線拆修或儲槽清洗過程中，因管線標示不清誤接、殘餘物質未排空或化學品洩漏，導致吸入有毒氣體或遭受腐蝕性液體灼傷。",
+    "typicalScenarios": [
+      "化學品輸送管線拆裝、閥門更換或法蘭鬆脫",
+      "化學槽車與廠區儲槽灌注接管作業",
+      "酸鹼或有機溶劑混合產生劇毒氣體（如氯氣）"
+    ],
+    "potentialConsequences": [
+      "急性中毒（如氯氣、硫化氫吸入）致呼吸衰竭",
+      "皮膚或眼睛化學性嚴重灼傷"
+    ],
+    "controlHierarchy": {
+      "eliminationOrSubstitution": ["優先選用低毒性或低揮發性替代化學品"],
+      "engineeringControls": ["管線設置明顯流向與介質名稱標示及防誤接接頭", "設置局部排氣與緊急沖淋洗眼器", "拆管前加裝盲板（盲封）隔離"],
+      "administrativeControls": ["確認安全資料表（SDS）與化學品相容性", "執行管線洩壓、排空與清洗確認並落實 LOTO", "建立承攬商與入廠灌注雙人核對程序"],
+      "ppe": ["依 SDS 選用適配濾毒罐之呼吸防護具或輸氣管面罩", "耐酸鹼化學防護衣及手套", "全面罩或化學護目鏡"]
+    },
+    "relatedLawRefs": [
+      "職業安全衛生法第6條第1項第7款",
+      "危害性化學品標示及通識規則"
+    ],
+    "source": {
+      "title": "勞動部職業安全衛生署－化學品管理及危害通識宣導資料",
+      "publisher": "勞動部職業安全衛生署",
+      "officialUrl": "https://www.osha.gov.tw/",
+      "updatedAt": "2026-11-26",
+      "citationSummary": "依據危害性化學品標示及通識規則與職安署化學品灌注防災案例整理。"
+    }
+  },
+  {
+    "id": "haz-oxygen-deficiency",
+    "hazardType": "缺氧窒息",
+    "category": "製程安全",
+    "description": "進入儲槽、人孔、污水槽或反應器等局限空間時，因氧氣濃度低於 18% 或蓄積硫化氫、一氧化碳等有害氣體，且未先通風及測定即進入或無防護盲目救援，造成單人或多人連鎖傷亡。",
+    "typicalScenarios": [
+      "廠區廢水處理池、人孔或化學儲槽內部清理與檢修",
+      "地下管溝檢視或反應器內元件安裝"
+    ],
+    "potentialConsequences": [
+      "短時間內意識喪失昏迷",
+      "缺氧窒息或硫化氫中毒死亡，並常伴隨救援人員二次傷亡"
+    ],
+    "controlHierarchy": {
+      "eliminationOrSubstitution": ["儘量採用外部清洗、遙控檢測或免進入設計"],
+      "engineeringControls": ["強制實施機械送風／排風換氣", "管線切斷並加裝盲封阻絕有害氣體或液體回流"],
+      "administrativeControls": ["落實「先通風、再測定、後作業」與進入許可制度", "指派外部專責監視人員", "明確禁止未配戴呼吸防護具人員進入救援"],
+      "ppe": ["正壓式空氣呼吸器（SCBA）或供氣式呼吸防護具", "全身背負式安全帶與救命索", "攜帶式多用氣體偵測器"]
+    },
+    "relatedLawRefs": [
+      "職業安全衛生法第6條第1項第7款",
+      "職業安全衛生設施規則第19-1至29-6條"
+    ],
+    "source": {
+      "title": "勞動部職業安全衛生署－局限空間作業缺氧中毒防災資料",
+      "publisher": "勞動部職業安全衛生署",
+      "officialUrl": "https://www.osha.gov.tw/",
+      "updatedAt": "2026-11-26",
+      "citationSummary": "依據職安署局限空間作業安全防護基準與案例檢討整理。"
+    }
+  },
+  {
+    "id": "haz-collapse",
+    "hazardType": "物體倒塌、崩塌",
+    "category": "危害辨識",
+    "description": "於大型集塵設備、重型機具搬運安裝或深度逾 1.5 公尺之管溝開挖配管作業中，因支撐固定不良或未設置擋土支撐，導致設備倒塌或土石崩塌壓擊勞工。",
+    "typicalScenarios": [
+      "大型集塵器或風車主體吊掛、拆裝與暫置",
+      "廠區地下污水或製程管溝開挖與配管作業"
+    ],
+    "potentialConsequences": [
+      "重物或土石強力壓擊致死",
+      "受困窒息與嚴重創傷"
+    ],
+    "controlHierarchy": {
+      "eliminationOrSubstitution": ["採用免開挖工法或工廠模組化預組裝"],
+      "engineeringControls": ["開挖深度達規定標準應設置擋土支撐或適當邊坡", "重型設備（如集塵器）須妥善固定或使用穩固支撐架"],
+      "administrativeControls": ["開挖與吊掛作業前執行地質及重心穩定性檢核", "劃設作業警戒區禁止人員進入倒塌半徑內"],
+      "ppe": ["安全帽", "安全鞋（鋼頭防護）", "反光背心"]
+    },
+    "relatedLawRefs": [
+      "職業安全衛生法第6條第1項第5款",
+      "營造安全衛生設施標準開挖擋土相關規定"
+    ],
+    "source": {
+      "title": "勞動部職業安全衛生署－物體倒塌及崩塌職災案例資料",
+      "publisher": "勞動部職業安全衛生署",
+      "officialUrl": "https://www.osha.gov.tw/",
+      "updatedAt": "2026-11-26",
+      "citationSummary": "依據職安署集塵器倒塌與污水管線開挖崩塌公開職災案例整理。"
+    }
+  }
+]

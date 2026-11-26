@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { AgentChatRequest, ApiErrorResponse } from '@safeagent/shared';
+import { AgentServiceError, runSingleAgentTurn } from '../agent/responses-client';
 import type { WorkerEnv } from '../types/env';
 
 export const agentRoutes = new Hono<WorkerEnv>();
@@ -32,7 +33,11 @@ agentRoutes.post('/agent/chat', async (c) => {
     return c.json(errorPayload, 400);
   }
 
-  if (body.conversationId !== undefined && body.conversationId !== null && typeof body.conversationId !== 'string') {
+  if (
+    body.conversationId !== undefined &&
+    body.conversationId !== null &&
+    typeof body.conversationId !== 'string'
+  ) {
     const errorPayload: ApiErrorResponse = {
       error: {
         code: 'INVALID_REQUEST',
@@ -43,12 +48,57 @@ agentRoutes.post('/agent/chat', async (c) => {
     return c.json(errorPayload, 400);
   }
 
-  const notImplementedPayload: ApiErrorResponse = {
-    error: {
-      code: 'AGENT_NOT_IMPLEMENTED',
-      message: 'AI Agent 尚未啟用',
-    },
-    requestId,
-  };
-  return c.json(notImplementedPayload, 501);
+  if (c.env?.AGENT_ENABLED !== 'true') {
+    const disabledPayload: ApiErrorResponse = {
+      error: {
+        code: 'AGENT_DISABLED',
+        message: 'Live Agent 目前未啟用（AGENT_ENABLED=false）',
+      },
+      requestId,
+    };
+    return c.json(disabledPayload, 503);
+  }
+
+  const apiKey = c.env?.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    const missingKeyPayload: ApiErrorResponse = {
+      error: {
+        code: 'AGENT_NOT_CONFIGURED',
+        message: '後端尚未設定 OPENAI_API_KEY，無法啟動 Live Agent',
+      },
+      requestId,
+    };
+    return c.json(missingKeyPayload, 503);
+  }
+
+  try {
+    const result = await runSingleAgentTurn({
+      apiKey,
+      model: c.env?.OPENAI_MODEL,
+      message: body.message.trim(),
+      conversationId: body.conversationId ?? null,
+    });
+    return c.json(result, 200);
+  } catch (err) {
+    if (err instanceof AgentServiceError) {
+      const errorPayload: ApiErrorResponse = {
+        error: {
+          code: err.code,
+          message: err.message,
+        },
+        requestId,
+      };
+      return c.json(errorPayload, err.status as 502 | 504);
+    }
+
+    console.error('[Agent Route Error]', err instanceof Error ? err.message : 'Unknown error');
+    const fallbackPayload: ApiErrorResponse = {
+      error: {
+        code: 'AGENT_EXECUTION_FAILED',
+        message: '執行 AI Agent 分析時發生未預期的錯誤',
+      },
+      requestId,
+    };
+    return c.json(fallbackPayload, 500);
+  }
 });

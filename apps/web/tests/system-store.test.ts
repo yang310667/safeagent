@@ -34,7 +34,7 @@ describe('useSystemStore Backend Connection Status', () => {
             JSON.stringify({
               agentEnabled: false,
               demoEnabled: false,
-              knowledgeBaseEnabled: false,
+              knowledgeBaseEnabled: true,
               version: '0.1.0',
             }),
             { status: 200 },
@@ -49,7 +49,7 @@ describe('useSystemStore Backend Connection Status', () => {
     expect(store.backendStatus).toBe('connected');
     expect(store.backendStatusLabel).toBe('後端已連線');
     expect(store.agentStatusLabel).toBe('尚未啟用');
-    expect(store.knowledgeBaseStatusLabel).toBe('尚未啟用');
+    expect(store.knowledgeBaseStatusLabel).toBe('已啟用');
   });
 
   it('gracefully sets disconnected status when backend is offline', async () => {

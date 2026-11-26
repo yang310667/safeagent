@@ -3,9 +3,11 @@ import type { ApiErrorResponse } from '@safeagent/shared';
 import { corsAllowlistMiddleware } from './middleware/cors';
 import { rateLimitMiddleware } from './middleware/rate-limit';
 import { requestIdMiddleware } from './middleware/request-id';
+import { accidentCaseRoutes } from './routes/accident-cases';
 import { agentRoutes } from './routes/agent';
 import { configRoutes } from './routes/config';
 import { healthRoutes } from './routes/health';
+import { knowledgeRoutes } from './routes/knowledge';
 import type { WorkerEnv } from './types/env';
 
 export function createApp(): Hono<WorkerEnv> {
@@ -18,6 +20,8 @@ export function createApp(): Hono<WorkerEnv> {
   app.route('/api', healthRoutes);
   app.route('/api', configRoutes);
   app.route('/api', agentRoutes);
+  app.route('/api', knowledgeRoutes);
+  app.route('/api', accidentCaseRoutes);
 
   app.notFound((c) => {
     const payload: ApiErrorResponse = {

@@ -45,21 +45,22 @@ safeagent/
 - Vue Router 使用 `createWebHashHistory()`，避免直接重新整理頁面或分享路由時於 GitHub Pages 產生 404。
 - `.github/workflows/deploy-pages.yml` 僅請求最小必要權限（`contents: read`、`pages: write`、`id-token: write`），透過 GitHub Repository Variables 注入 `VITE_API_BASE_URL`。
 
-## 5. 未來 OpenAI Agent 整合方式（Day 3+ 規劃）
+## 5. OpenAI Single Agent 整合架構（Day 3 已實作）
 
-- 採用 **Single Agent Architecture** 搭配 **OpenAI Responses API** 與 **Function Calling / Structured Outputs**。
-- 不使用 LangChain 或 LangGraph，由 Worker 端直接控制工具執行循環與最大步數限制。
-- 預留五個核心工具介面：`search_safety_knowledge`、`search_accident_cases`、`identify_hazards`、`calculate_risk`、`generate_report`。
-- 工具執行狀態將透過 `apps/worker/src/services/sse.ts` 定義的 SSE 事件框架回傳前端顯示於 Agent Execution Trace（僅顯示工具輸入輸出摘要與官方來源，不公開模型內部推理過程）。
+- 採用 **Single Agent Architecture** 搭配 **OpenAI Responses API**（`/v1/responses`）與 **Function Calling + Structured Outputs**（`text.format` 嚴格 JSON Schema）。
+- 不使用 LangChain 或 LangGraph，由 Worker 端（`apps/worker/src/agent/responses-client.ts`）直接控制工具執行循環（上限 4 輪，單次 OpenAI 請求逾時 25 秒；前端 `sendAgentChat` 逾時 60 秒）。
+- 多輪對話狀態透過 OpenAI Responses API 原生 `previous_response_id` 串接（由後端回傳 `conversationId` 供前端下一輪附帶，無須伺服器端 Session 儲存）。
+- Day 3 已啟用三個工具：`search_safety_knowledge`、`search_accident_cases`、`identify_hazards`；`calculate_risk` 與 `generate_report` 預留於 Day 4 整合風險矩陣後啟用。
+- 工具執行摘要與官方引用來源透過 `/api/agent/chat` 回傳並呈現於 Workspace 右側面板；Day 5 將進一步透過 `apps/worker/src/services/sse.ts` 升級為 SSE 即時串流。
 
 ## 6. Secret 管理方式
 
-- 本機開發：於 `apps/worker/.dev.vars` 設定 `OPENAI_API_KEY`（已列入 `.gitignore`，禁止提交至 Git）。
+- 本機開發：於 `apps/worker/.dev.vars` 設定 `OPENAI_API_KEY`、`OPENAI_MODEL` 與 `AGENT_ENABLED=true`（已列入 `.gitignore`，禁止提交至 Git）。
 - 正式環境：透過 `wrangler secret put OPENAI_API_KEY` 儲存於 Cloudflare Workers Secret，不寫入 `wrangler.jsonc`。
 - 前端環境變數（`VITE_*`）僅放置公開網址與版本號，嚴禁放置任何 API Key 或敏感憑證。
 
-## 7. 已知技術限制（Day 1）
+## 7. 已知技術限制（Day 3）
 
-- AI Agent 與知識庫檢索功能尚未實作（`POST /api/agent/chat` 回傳 HTTP 501）。
+- 5×5 風險矩陣計算規則與 SSE 即時串流尚未實作（預定於 Day 4、Day 5 陸續完成）。
 - `rateLimitMiddleware` 目前為 pass-through 預留介面，尚未綁定 Cloudflare Rate Limiting 規則，尚不具備真實限流防護。
 - 前端僅針對桌面版視窗（1280×800 以上）設計，未包含手機或平板版面適配。

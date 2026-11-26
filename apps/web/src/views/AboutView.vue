@@ -16,8 +16,8 @@ const systemStore = useSystemStore();
 
 const roadmapPhases = [
   { day: 'Day 1', title: '專案初始化與基礎架構', status: '已完成', tone: 'success' as const },
-  { day: 'Day 2', title: '官方職安資料蒐集與知識庫', status: '待開發', tone: 'neutral' as const },
-  { day: 'Day 3', title: 'OpenAI Live Agent 與 Function Calling', status: '待開發', tone: 'neutral' as const },
+  { day: 'Day 2', title: '官方職安資料蒐集與知識庫', status: '已完成', tone: 'success' as const },
+  { day: 'Day 3', title: 'OpenAI Live Agent 與 Function Calling', status: '已完成', tone: 'success' as const },
   { day: 'Day 4', title: '風險矩陣與結構化報告', status: '待開發', tone: 'neutral' as const },
   { day: 'Day 5', title: 'SSE Streaming 與 Agent Execution Trace', status: '待開發', tone: 'neutral' as const },
   { day: 'Day 6', title: 'Agent 測試與評估', status: '待開發', tone: 'neutral' as const },
@@ -112,13 +112,13 @@ const dataSources = [
       <section class="col-span-6 bg-white border border-[#E2E8F0] rounded-lg p-6 space-y-3">
         <h2 class="text-base font-semibold text-[#1E293B] flex items-center gap-2">
           <Database class="h-4 w-4 text-[#0F766E]" aria-hidden="true" />
-          <span>預計資料來源（待查證清單）</span>
+          <span>官方資料來源（已於 Day 2 查證建檔）</span>
         </h2>
         <ul class="space-y-1.5 text-xs text-[#475569]">
           <li v-for="source in dataSources" :key="source">· {{ source }}</li>
         </ul>
         <p class="text-[11px] text-[#64748B] pt-1">
-          所有正式知識資料將於 Day 2 查證官方原始發布資訊後建檔，並標註來源 URL 與更新日期。
+          知識庫法規條目與公開職災案例均來自勞動部職業安全衛生署及全國法規資料庫，並逐筆標註官方來源 URL 與修正／查證日期。
         </p>
       </section>
 
@@ -128,7 +128,7 @@ const dataSources = [
           <span>研究限制與技術邊界</span>
         </h2>
         <ul class="space-y-1.5 text-xs text-[#475569] leading-relaxed">
-          <li>· Day 1 尚未整合真實 OpenAI API 與職安知識庫資料，僅完成前後端架構與介面骨架。</li>
+          <li>· 目前已完成官方職安知識庫（Day 2）與 OpenAI Single Agent 工具呼叫（Day 3）；5×5 風險矩陣計算規則將於 Day 4 實作。</li>
           <li>· AI 模型可能存在遺漏現場特殊條件或推論誤差，不得作為唯一決策依據。</li>
           <li>· 系統未包含正式作業許可簽核功能，亦未完成現場實證評估。</li>
         </ul>

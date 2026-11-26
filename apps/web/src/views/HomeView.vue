@@ -28,14 +28,16 @@ const coreFeatures = [
   {
     title: 'AI 危害辨識',
     description: '根據作業情境，協助辨識潛在危害與可能後果。',
-    status: '開發中（Day 3 實作）',
+    status: '已啟用（Day 3 完成）',
+    tone: 'success' as const,
     icon: ShieldAlert,
     to: '/workspace',
   },
   {
     title: '職安知識檢索',
     description: '檢索具有官方資料來源的職業安全衛生知識。',
-    status: '規劃中（Day 2 建置）',
+    status: '已啟用（Day 2 完成）',
+    tone: 'success' as const,
     icon: BookOpen,
     to: '/knowledge',
   },
@@ -43,13 +45,15 @@ const coreFeatures = [
     title: '風險矩陣評估',
     description: '透過發生可能性與後果嚴重度，協助進行初步風險評估。',
     status: '規劃中（Day 4 實作）',
+    tone: 'warning' as const,
     icon: Grid2x2,
     to: '/risk-matrix',
   },
   {
     title: '職災案例分析',
     description: '透過公開職災案例，了解事故原因及預防措施。',
-    status: '規劃中（Day 2 建置）',
+    status: '已啟用（Day 2 完成）',
+    tone: 'success' as const,
     icon: FileSearch,
     to: '/accident-cases',
   },
@@ -83,6 +87,14 @@ const backendTone = computed<BadgeTone>(() => {
   if (systemStore.backendStatus === 'checking') return 'warning';
   return 'danger';
 });
+
+const knowledgeBaseTone = computed<BadgeTone>(() =>
+  systemStore.config?.knowledgeBaseEnabled ? 'success' : 'neutral',
+);
+
+const agentTone = computed<BadgeTone>(() =>
+  systemStore.config?.agentEnabled ? 'success' : 'neutral',
+);
 </script>
 
 <template>
@@ -94,7 +106,7 @@ const backendTone = computed<BadgeTone>(() => {
           <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-teal-50 text-[#0F766E] border border-teal-200 text-xs font-medium">
             <span>研究概念驗證（Proof of Concept）</span>
             <span aria-hidden="true">·</span>
-            <span>Day 1 基礎架構階段</span>
+            <span>Day 3 Live Agent 工具呼叫階段</span>
           </div>
 
           <div>
@@ -195,7 +207,7 @@ const backendTone = computed<BadgeTone>(() => {
               <span>AI Agent Status</span>
             </dt>
             <dd>
-              <StatusBadge :label="systemStore.agentStatusLabel" tone="neutral" />
+              <StatusBadge :label="systemStore.agentStatusLabel" :tone="agentTone" />
             </dd>
           </div>
 
@@ -205,7 +217,7 @@ const backendTone = computed<BadgeTone>(() => {
               <span>Knowledge Base Status</span>
             </dt>
             <dd>
-              <StatusBadge :label="systemStore.knowledgeBaseStatusLabel" tone="neutral" />
+              <StatusBadge :label="systemStore.knowledgeBaseStatusLabel" :tone="knowledgeBaseTone" />
             </dd>
           </div>
         </dl>
@@ -238,7 +250,7 @@ const backendTone = computed<BadgeTone>(() => {
               <div class="h-9 w-9 rounded-md bg-teal-50 text-[#0F766E] flex items-center justify-center border border-teal-100">
                 <component :is="feature.icon" class="h-4 w-4" aria-hidden="true" />
               </div>
-              <StatusBadge :label="feature.status" tone="warning" :show-dot="false" />
+              <StatusBadge :label="feature.status" :tone="feature.tone" :show-dot="false" />
             </div>
             <h3 class="text-sm font-semibold text-[#1E293B]">{{ feature.title }}</h3>
             <p class="text-xs text-[#64748B] leading-relaxed">{{ feature.description }}</p>
